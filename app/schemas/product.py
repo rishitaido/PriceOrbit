@@ -1,0 +1,113 @@
+"""
+Pydantic schemas for Product model
+Used for request validation and response serialization
+"""
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List
+from decimal import Decimal
+from datetime import datetime
+
+
+class PriceHistoryEntry(BaseModel):
+    """Single entry in price history"""
+    date: str = Field(..., description="ISO format date string")
+    price: float = Field(..., ge=0, description="Price value")
+
+
+class ProductBase(BaseModel):
+    """
+    Base product schema with common fields
+    Shared between Create and Update operations
+    """
+    name: str = Field(..., min_length=1, max_length=200, description="Product name")
+    category: str = Field(..., min_length=1, max_length=100, description="Product category")
+    retailer: str = Field(default="Kroger", max_length=100, description="Retailer name")
+    description: Optional[str] = Field(None, description="Product description")
+    current_price: Optional[Decimal] = Field(None, ge=0, description="Current price in USD")
+    tariff_rate: Decimal = Field(default=0.0, ge=0, le=100, description="Tariff rate percentage")
+    import_dependency: str = Field(
+        default="Unknown",
+        description="Import dependency level: High, Medium, Low, Unknown"
+    )
+    hts_code: Optional[str] = Field(None, max_length=20, description="Harmonized Tariff Schedule code")
+    origin_country: Optional[str] = Field(None, max_length=100, description="Primary import country")
+    kroger_product_id: Optional[str] = Field(None, max_length=100, description="Kroger API product ID")
+    image_url: Optional[str] = Field(None, max_length=500, description="Product image URL")
+
+
+class ProductCreate(ProductBase):
+    """
+    Schema for creating a new product
+    Inherits all fields from ProductBase
+    """
+    pass
+
+
+class ProductUpdate(BaseModel):
+    """
+    Schema for updating an existing product
+    All fields are optional for partial updates
+    """
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    category: Optional[str] = Field(None, min_length=1, max_length=100)
+    retailer: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = None
+    current_price: Optional[Decimal] = Field(None, ge=0)
+    tariff_rate: Optional[Decimal] = Field(None, ge=0, le=100)
+    import_dependency: Optional[str] = None
+    hts_code: Optional[str] = Field(None, max_length=20)
+    origin_country: Optional[str] = Field(None, max_length=100)
+    kroger_product_id: Optional[str] = Field(None, max_length=100)
+    image_url: Optional[str] = Field(None, max_length=500)
+
+
+class ProductResponse(ProductBase):
+    """
+    Schema for product API responses
+    Includes all fields plus computed/database-managed fields
+    """
+    id: int = Field(..., description="Product ID")
+    health_score: Decimal = Field(..., ge=0, le=100, description="Health score (0-100)")
+    price_history: List[PriceHistoryEntry] = Field(default_factory=list, description="Historical prices")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    last_price_check: Optional[datetime] = Field(None, description="Last price check timestamp")
+    
+    model_config = ConfigDict(from_attributes=True)  # Allows conversion from SQLAlchemy models
+
+
+class ProductListResponse(BaseModel):
+    """
+    Schema for paginated product list responses
+    """
+    products: List[ProductResponse]
+    total: int = Field(..., description="Total number of products")
+    page: int = Field(default=1, ge=1, description="Current page number")
+    page_size: int = Field(default=20, ge=1, le=100, description="Items per page")
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class HealthScoreColor(BaseModel):
+    """Helper schema for health score color coding"""
+    score: Decimal
+    color: str = Field(..., description="Color: green, yellow, or red")
+    label: str = Field(..., description="Label: Good, Caution, or Risk")
+    
+    @classmethod
+    def from_score(cls, score: Decimal):
+        """
+        Determine color and label based on health score
+        
+        Args:
+            score: Health score (0-100)
+        
+        Returns:
+            HealthScoreColor instance
+        """
+        if score >= 70:
+            return cls(score=score, color="green", label="Good")
+        elif score >= 40:
+            return cls(score=score, color="yellow", label="Caution")
+        else:
+            return cls(score=score, color="red", label="Risk")
