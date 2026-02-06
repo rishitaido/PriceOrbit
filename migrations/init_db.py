@@ -2,6 +2,12 @@
 Database initialization script
 Creates all tables defined in SQLAlchemy models
 Run this script to set up the database schema
+FOR DEV / TEST ONLY
+
+This script force-resets the database and bypasses Alembic migrations.
+After running this script, you MUST run:
+
+    alembic stamp head
 """
 import sys
 from pathlib import Path
