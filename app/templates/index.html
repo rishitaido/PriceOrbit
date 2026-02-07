@@ -1,45 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PriceOrbit - Login</title>
-  
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  
-  <!-- for use w live server & link css -->
+
+  <!-- Live Server -->
   <link rel="stylesheet" href="../static/css/main.css">
 
-  <!-- for use w FastAPI (comment out above and uncomment below when deploying) 
-  <!-- <link rel="stylesheet" href="/static/css/main.css"> -->
+  <!-- FastAPI (use this instead when deploying)
+  <link rel="stylesheet" href="/static/css/main.css">
+  -->
 </head>
 
 <body>
-  <!-- Header with logo and navigation -->
-  <header>
+  <!-- Landing Header -->
+  <header class="landing-header">
     <div class="logo">
       <img src="../static/images/logo.png" alt="PriceOrbit Logo">
     </div>
-    <nav>
+
+    <nav class="landing-nav">
       <a href="#about">About</a>
       <a href="#contact">Contact</a>
     </nav>
   </header>
-  
-  <!-- Main content area -->
-  <main>
+
+  <!-- Landing Main -->
+  <main class="landing-main">
     <!-- Left side - Welcome text -->
-    <div class="welcome-text">
+    <section class="welcome-text">
       <h1>Welcome to PriceOrbit</h1>
       <p>Track product prices and predict market trends with tariff intelligence.</p>
-    </div>
+    </section>
 
     <!-- Right side - Login form -->
-    <div class="login-box">
+    <section class="login-box">
       <h2>Login</h2>
-      
-      <form>
+
+      <!-- For Sprint 1 / Live Server: navigate to products page -->
+      <form action="products.html" method="get">
         <div class="form-group">
           <label>Email</label>
           <input type="email" placeholder="Enter your email" required>
@@ -59,8 +61,7 @@
 
         <p class="signup-link">Don't have an account? <a href="#signup">Sign up</a></p>
       </form>
-    </div>
+    </section>
   </main>
-
 </body>
 </html>
