@@ -6,6 +6,3 @@ from sqlalchemy.ext.declarative import declarative_base
 
 # Create Base class for all models
 Base = declarative_base()
-
-# Import all models here so they're registered with Base
-from app.models.product import Product 
