@@ -7,11 +7,14 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <!-- FastAPI (use this instead when deploying)
-  <link rel="stylesheet" href="/static/css/main.css"> -->
+  <!-- FastAPI (when deploying) 
+  <link rel="stylesheet" href="/static/css/main.css"> 
+  <script src="/static/js/products.js"></script> -->
 
   <!-- Live Server -->
    <link rel="stylesheet" href="../static/css/main.css" /> 
+
+
 </head>
 
 <body>
@@ -23,6 +26,13 @@
       </div>
 
       <div class="topbar-right">
+        <div class="search-container">
+          <i class="fa-solid fa-search"></i>
+          <input type="text" id="search-input" placeholder="Search products..." />
+        </div>
+        <a href="/docs" class="btn-api-docs" target="_blank" title="View API Documentation">
+          <i class="fa-solid fa-code"></i> API Docs
+        </a>
         <button class="btn-track-product" type="button">
           <i class="fa-solid fa-plus"></i> Track Product
         </button>
@@ -96,6 +106,9 @@
     </main>
   </div>
 
+  <!-- Core JavaScript utilities (loaded first) -->
+  <script src="../static/js/main.js"></script>
+  <!-- Product-specific functionality -->
   <script src="../static/js/products.js"></script>
 </body>
 </html>

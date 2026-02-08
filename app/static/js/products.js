@@ -66,11 +66,11 @@ function createProductCard(product) {
 
       <div class="product-health">
         <div class="health-label">Health Score</div>
-        <div class="health-score-bar">
-          <div class="health-score-fill ${healthClass}" style="width: ${product.health_score}%"></div>
-        </div>
-        <div class="health-score-value ${healthClass}">
-          <strong>${product.health_score}</strong>
+        <div class="health-score-container">
+          <div class="health-bar-wrapper">
+            <div class="health-bar-fill health-bar-${healthClass.replace('health-', '')}" style="width: ${product.health_score}%"></div>
+          </div>
+          <span class="health-score-number ${healthClass}">${product.health_score}</span>
         </div>
       </div>
 
@@ -159,4 +159,29 @@ function viewProductDetails(productId) {
   alert(`Product details for ID ${productId} will be implemented later`);
 }
 
-document.addEventListener("DOMContentLoaded", fetchProducts);
+// Search functionality
+function setupSearchFilter() {
+  const searchInput = document.getElementById("search-input");
+  if (!searchInput) return;
+
+  searchInput.addEventListener("input", (e) => {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    const productItems = document.querySelectorAll(".product-item");
+
+    productItems.forEach((item) => {
+      const productName = item.querySelector(".product-name")?.textContent.toLowerCase() || "";
+      const productCategory = item.querySelector(".product-category")?.textContent.toLowerCase() || "";
+      
+      if (productName.includes(searchTerm) || productCategory.includes(searchTerm)) {
+        item.style.display = "";
+      } else {
+        item.style.display = "none";
+      }
+    });
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetchProducts();
+  setupSearchFilter();
+});
