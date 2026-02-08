@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: priceorbit_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: mysql+pymysql://root:root@127.0.0.1:3306/priceorbit_test
+        run: |
+          alembic upgrade head
+
+      - name: Run tests
+        env:
+          DATABASE_URL: mysql+pymysql://root:root@127.0.0.1:3306/priceorbit_test
+          CI: "true"
+        run: |
+          pytest
