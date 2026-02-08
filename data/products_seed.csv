@@ -1,0 +1,51 @@
+name,category,import_dependency
+Bananas,Fresh Produce,Low
+Apples,Fresh Produce,Low
+Oranges,Fresh Produce,Low
+Strawberries,Fresh Produce,Medium
+Blueberries,Fresh Produce,Medium
+Avocados,Fresh Produce,High
+Tomatoes,Fresh Produce,Medium
+Onions,Fresh Produce,Low
+Potatoes,Fresh Produce,Low
+Spinach,Fresh Produce,Low
+Broccoli,Fresh Produce,Low
+Bell Peppers,Fresh Produce,Medium
+Carrots,Fresh Produce,Low
+Lettuce,Fresh Produce,Low
+Garlic,Fresh Produce,Medium
+Whole Milk,Dairy & Eggs,Low
+Almond Milk,Dairy & Eggs,Medium
+Cheddar Cheese,Dairy & Eggs,Medium
+Mozzarella Cheese,Dairy & Eggs,Medium
+Greek Yogurt,Dairy & Eggs,Low
+Butter,Dairy & Eggs,Low
+Eggs,Dairy & Eggs,Low
+Heavy Cream,Dairy & Eggs,Low
+Sour Cream,Dairy & Eggs,Low
+Parmesan Cheese,Dairy & Eggs,High
+Chicken Breast,Meat & Seafood,Low
+Ground Beef,Meat & Seafood,Low
+Pork Chops,Meat & Seafood,Low
+Bacon,Meat & Seafood,Low
+Salmon Fillet,Meat & Seafood,High
+Shrimp,Meat & Seafood,High
+Tilapia,Meat & Seafood,Medium
+Ground Turkey,Meat & Seafood,Low
+Beef Steak,Meat & Seafood,Low
+Lamb Chops,Meat & Seafood,High
+White Rice,Pantry Staples,Medium
+Brown Rice,Pantry Staples,Medium
+Pasta,Pantry Staples,Low
+Olive Oil,Pantry Staples,High
+Vegetable Oil,Pantry Staples,Medium
+Canned Black Beans,Pantry Staples,Low
+Canned Chickpeas,Pantry Staples,Low
+Sugar,Pantry Staples,Medium
+All-Purpose Flour,Pantry Staples,Low
+Peanut Butter,Pantry Staples,Low
+Frozen Pizza,Frozen Foods,Low
+Frozen Vegetables,Frozen Foods,Low
+Frozen Berries,Frozen Foods,Medium
+Ice Cream,Frozen Foods,Low
+Frozen Chicken Nuggets,Frozen Foods,Low
