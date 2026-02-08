@@ -30,6 +30,12 @@ jobs:
         ruff check . --output-format=github || true
 
     - name: Run tests
+      env:
+        # Stored in GitHub Secrets
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+        KROGER_CLIENT_ID: ${{ secrets.KROGER_CLIENT_ID }}
+        KROGER_CLIENT_SECRET: ${{ secrets.KROGER_CLIENT_SECRET }}
       run: |
         pip install pytest-cov
         pytest tests/ -v --tb=short
