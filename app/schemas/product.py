@@ -1,6 +1,6 @@
 """
 Pydantic schemas for Product model
-Used for request validation and response serialization
+Used for API validation and response serialization
 """
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
