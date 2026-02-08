@@ -1,4 +1,10 @@
 import pytest
+import os
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("CI") == "true",
+    reason="Requires MySQL database"
+)
 
 from app.services.product_service import (
     create_product,
