@@ -87,6 +87,93 @@
         <p>Monitor price trends and health scores for your products</p>
       </div>
 
+      <!-- Dashboard Statistics Cards -->
+      <div class="dashboard-stats">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #3b82f6;">
+            <i class="fa-solid fa-box"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Tracked Products</p>
+            <p class="stat-value" id="stat-total">0</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #10b981;">
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Avg Health Score</p>
+            <p class="stat-value" id="stat-health">0</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #ef4444;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">High Risk Items</p>
+            <p class="stat-value" id="stat-risk">0</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #f59e0b;">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Active Alerts</p>
+            <p class="stat-value" id="stat-alerts">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters and Sort Controls -->
+      <div class="controls-bar">
+        <div class="filter-group">
+          <label for="category-filter">
+            <i class="fa-solid fa-filter"></i> Category:
+          </label>
+          <select id="category-filter">
+            <option value="all">All Categories</option>
+            <option value="Dairy">Dairy</option>
+            <option value="Baby Products">Baby Products</option>
+            <option value="Pantry">Pantry</option>
+            <option value="Produce">Produce</option>
+            <option value="Meat">Meat</option>
+            <option value="Frozen">Frozen</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="risk-filter">
+            <i class="fa-solid fa-shield"></i> Risk Level:
+          </label>
+          <select id="risk-filter">
+            <option value="all">All Levels</option>
+            <option value="low">Low Risk (70-100)</option>
+            <option value="medium">Medium Risk (40-69)</option>
+            <option value="high">High Risk (0-39)</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="sort-select">
+            <i class="fa-solid fa-arrow-down-short-wide"></i> Sort By:
+          </label>
+          <select id="sort-select">
+            <option value="health-desc">Health Score (High to Low)</option>
+            <option value="health-asc">Health Score (Low to High)</option>
+            <option value="price-desc">Price (High to Low)</option>
+            <option value="price-asc">Price (Low to High)</option>
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Loading State -->
       <div id="loading" class="loading-state">
         <i class="fa-solid fa-spinner fa-spin"></i>

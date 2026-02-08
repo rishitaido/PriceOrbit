@@ -16,8 +16,7 @@ body {
 
 /* =========================
    LANDING PAGE (index.html)
-   IMPORTANT: scoped so it
-   does NOT affect dashboard
+   IMPORTANT: scoped so it does not affect dashboard
 ========================= */
 .landing-header {
   background-color: white;
@@ -464,6 +463,145 @@ body {
 }
 
 /* =========================
+   DASHBOARD STATISTICS
+========================= */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon i {
+  font-size: 20px;
+  color: white;
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111;
+}
+
+/* =========================
+   FILTERS AND CONTROLS
+========================= */
+.controls-bar {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-group label i {
+  color: #999;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  min-width: 150px;
+}
+
+.filter-group select:hover {
+  border-color: #999;
+}
+
+.filter-group select:focus {
+  outline: none;
+  border-color: #111;
+  box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.1);
+}
+
+@media (max-width: 768px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
    PRODUCTS LIST UI
 ========================= */
 .loading-state,
@@ -484,12 +622,135 @@ body {
   gap: 14px;
 }
 
+.empty-state {
+  background: white;
+  border: 2px dashed #e5e7eb;
+  border-radius: 14px;
+  padding: 60px 20px;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 16px;
+  color: #6b7280;
+}
+
 .product-item {
   background: #fff;
   border: 1px solid #eee;
   border-radius: 14px;
-  padding: 16px;
+  padding: 20px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.product-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.product-icon i {
+  font-size: 28px;
+  color: #6b7280;
+}
+
+.product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 8px;
+}
+
+.product-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.product-category {
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-category::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: #6b7280;
+  border-radius: 50%;
+}
+
+.product-price {
+  color: #111;
+  font-weight: 600;
+}
+
+.product-health {
+  min-width: 220px;
+}
+
+.health-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.product-actions {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .product-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .product-health {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .product-actions {
+    width: 100%;
+  }
+
+  .btn-view-details {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* Health Score Bar */

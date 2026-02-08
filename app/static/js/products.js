@@ -3,7 +3,10 @@
 // URL when FastAPI serves the page
 const API_URL = "/api/products";
 
-// TEMP data for Live Server / when backend isn't running yet
+// Global products array for filtering and sorting
+let allProducts = [];
+
+// TEMP data for Live Server 
 const FALLBACK_PRODUCTS = [
   { id: 1, name: "Organic Milk", category: "Dairy", current_price: 4.99, health_score: 85 },
   { id: 2, name: "Baby Formula", category: "Baby Products", current_price: 31.99, health_score: 42 },
@@ -11,7 +14,7 @@ const FALLBACK_PRODUCTS = [
   { id: 4, name: "Coffee Beans", category: "Pantry", current_price: 12.99, health_score: 72 },
 ];
 
-// Normalize backend field names just in case backend returns snake_case
+// Normalize backend field names in case backend returns snake_case
 function normalizeProduct(p) {
   return {
     id: p.id,
@@ -38,6 +41,89 @@ function getRiskIcon(score) {
   if (score >= 70) return '<i class="fa-solid fa-circle-check"></i>';
   if (score >= 40) return '<i class="fa-solid fa-triangle-exclamation"></i>';
   return '<i class="fa-solid fa-circle-exclamation"></i>';
+}
+
+function updateDashboardStats(products) {
+  const total = products.length;
+  const avgHealth = total > 0 
+    ? Math.round(products.reduce((sum, p) => sum + p.health_score, 0) / total) 
+    : 0;
+  const highRisk = products.filter(p => p.health_score < 40).length;
+  
+  // Active alerts: count products with health score below 70 (medium-high risk)
+  const activeAlerts = products.filter(p => p.health_score < 70).length;
+
+  document.getElementById("stat-total").textContent = total;
+  document.getElementById("stat-health").textContent = avgHealth;
+  document.getElementById("stat-risk").textContent = highRisk;
+  document.getElementById("stat-alerts").textContent = activeAlerts;
+}
+
+function filterAndSortProducts() {
+  const categoryFilter = document.getElementById("category-filter")?.value || "all";
+  const riskFilter = document.getElementById("risk-filter")?.value || "all";
+  const sortBy = document.getElementById("sort-select")?.value || "health-desc";
+  const searchTerm = document.getElementById("search-input")?.value.toLowerCase().trim() || "";
+
+  let filtered = [...allProducts];
+
+  // Apply category filter
+  if (categoryFilter !== "all") {
+    filtered = filtered.filter(p => p.category === categoryFilter);
+  }
+
+  // Apply risk filter
+  if (riskFilter !== "all") {
+    filtered = filtered.filter(p => {
+      if (riskFilter === "low") return p.health_score >= 70;
+      if (riskFilter === "medium") return p.health_score >= 40 && p.health_score < 70;
+      if (riskFilter === "high") return p.health_score < 40;
+      return true;
+    });
+  }
+
+  // Apply search filter
+  if (searchTerm) {
+    filtered = filtered.filter(p => 
+      p.name.toLowerCase().includes(searchTerm) || 
+      p.category.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  // Apply sorting
+  filtered.sort((a, b) => {
+    switch (sortBy) {
+      case "health-desc": return b.health_score - a.health_score;
+      case "health-asc": return a.health_score - b.health_score;
+      case "price-desc": return (b.current_price || 0) - (a.current_price || 0);
+      case "price-asc": return (a.current_price || 0) - (b.current_price || 0);
+      case "name-asc": return a.name.localeCompare(b.name);
+      case "name-desc": return b.name.localeCompare(a.name);
+      default: return 0;
+    }
+  });
+
+  renderProducts(filtered);
+}
+
+function renderProducts(products) {
+  const productsList = document.getElementById("products-list");
+  if (!productsList) return;
+
+  if (products.length === 0) {
+    productsList.innerHTML = '<div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No products match your filters.</p></div>';
+    return;
+  }
+
+  productsList.innerHTML = products.map(createProductCard).join("");
+
+  // View details buttons
+  productsList.querySelectorAll(".btn-view-details").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-product-id");
+      viewProductDetails(id);
+    });
+  });
 }
 
 function createProductCard(product) {
@@ -114,8 +200,6 @@ async function fetchProducts() {
   setLoadingUI({ loading: true, errorMessage: null });
   productsList.innerHTML = "";
 
-  let products = [];
-
   try {
     // Try API first
     const res = await fetch(API_URL);
@@ -125,16 +209,16 @@ async function fetchProducts() {
     }
 
     const data = await res.json();
-    products = Array.isArray(data) ? data.map(normalizeProduct) : [];
+    allProducts = Array.isArray(data) ? data.map(normalizeProduct) : [];
   } catch (err) {
-    // Fallback for Live Server / backend down
+    // TEMP for Live Server 
     console.warn("API fetch failed, using fallback products:", err);
-    products = FALLBACK_PRODUCTS.map(normalizeProduct);
+    allProducts = FALLBACK_PRODUCTS.map(normalizeProduct);
   }
 
   setLoadingUI({ loading: false, errorMessage: null });
 
-  if (!products.length) {
+  if (!allProducts.length) {
     setLoadingUI({
       loading: false,
       errorMessage: 'No products found. Click "+ Track Product" to add products.',
@@ -142,16 +226,24 @@ async function fetchProducts() {
     return;
   }
 
-  // Render
-  productsList.innerHTML = products.map(createProductCard).join("");
+  // Update statistics
+  updateDashboardStats(allProducts);
 
-  // Hook up buttons (no inline onclick needed)
-  productsList.addEventListener("click", (e) => {
-    const btn = e.target.closest(".btn-view-details");
-    if (!btn) return;
-    const id = btn.getAttribute("data-product-id");
-    viewProductDetails(id);
-  });
+  // Render products
+  filterAndSortProducts();
+}
+
+// Setup filter and sort event listeners
+function setupControls() {
+  const categoryFilter = document.getElementById("category-filter");
+  const riskFilter = document.getElementById("risk-filter");
+  const sortSelect = document.getElementById("sort-select");
+  const searchInput = document.getElementById("search-input");
+
+  if (categoryFilter) categoryFilter.addEventListener("change", filterAndSortProducts);
+  if (riskFilter) riskFilter.addEventListener("change", filterAndSortProducts);
+  if (sortSelect) sortSelect.addEventListener("change", filterAndSortProducts);
+  if (searchInput) searchInput.addEventListener("input", filterAndSortProducts);
 }
 
 // Placeholder
@@ -159,29 +251,7 @@ function viewProductDetails(productId) {
   alert(`Product details for ID ${productId} will be implemented later`);
 }
 
-// Search functionality
-function setupSearchFilter() {
-  const searchInput = document.getElementById("search-input");
-  if (!searchInput) return;
-
-  searchInput.addEventListener("input", (e) => {
-    const searchTerm = e.target.value.toLowerCase().trim();
-    const productItems = document.querySelectorAll(".product-item");
-
-    productItems.forEach((item) => {
-      const productName = item.querySelector(".product-name")?.textContent.toLowerCase() || "";
-      const productCategory = item.querySelector(".product-category")?.textContent.toLowerCase() || "";
-      
-      if (productName.includes(searchTerm) || productCategory.includes(searchTerm)) {
-        item.style.display = "";
-      } else {
-        item.style.display = "none";
-      }
-    });
-  });
-}
-
 document.addEventListener("DOMContentLoaded", () => {
+  setupControls();
   fetchProducts();
-  setupSearchFilter();
 });

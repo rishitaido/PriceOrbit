@@ -1,9 +1,5 @@
 /**
  * main.js - Core JavaScript utilities for PriceOrbit
- * Sprint 1: Establish JavaScript patterns and infrastructure
- * Decision: Using Vanilla JavaScript (no jQuery dependency)
- * 
- * Purpose: Provide reusable DOM manipulation, debugging, and utility functions
  * for use across all pages (index.html, products.html, future pages)
  */
 
@@ -15,7 +11,7 @@ const PriceOrbit = {
   // Enable/disable debug logging (set to false in production)
   DEBUG: true,
   
-  // API base URL (will be used in Sprint 2-4)
+  // API base URL 
   API_BASE: '/api',
   
   // Application version
