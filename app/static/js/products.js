@@ -1,0 +1,257 @@
+// products.js - Fetches and displays tracked products from FastAPI backend
+
+// URL when FastAPI serves the page
+const API_URL = "/api/products";
+
+// Global products array for filtering and sorting
+let allProducts = [];
+
+// TEMP data for Live Server 
+const FALLBACK_PRODUCTS = [
+  { id: 1, name: "Organic Milk", category: "Dairy", current_price: 4.99, health_score: 85 },
+  { id: 2, name: "Baby Formula", category: "Baby Products", current_price: 31.99, health_score: 42 },
+  { id: 3, name: "Olive Oil", category: "Pantry", current_price: 18.99, health_score: 38 },
+  { id: 4, name: "Coffee Beans", category: "Pantry", current_price: 12.99, health_score: 72 },
+];
+
+// Normalize backend field names in case backend returns snake_case
+function normalizeProduct(p) {
+  return {
+    id: p.id,
+    name: p.name ?? "Unnamed Product",
+    category: p.category ?? "Uncategorized",
+    current_price: p.current_price ?? p.currentPrice ?? null,
+    health_score: p.health_score ?? p.healthScore ?? 0,
+  };
+}
+
+function getHealthScoreClass(score) {
+  if (score >= 70) return "health-green";   // 70-100
+  if (score >= 40) return "health-yellow";  // 40-69
+  return "health-red";                      // 0-39
+}
+
+function getRiskLevel(score) {
+  if (score >= 70) return "Stable";
+  if (score >= 40) return "Medium Risk";
+  return "High Risk";
+}
+
+function getRiskIcon(score) {
+  if (score >= 70) return '<i class="fa-solid fa-circle-check"></i>';
+  if (score >= 40) return '<i class="fa-solid fa-triangle-exclamation"></i>';
+  return '<i class="fa-solid fa-circle-exclamation"></i>';
+}
+
+function updateDashboardStats(products) {
+  const total = products.length;
+  const avgHealth = total > 0 
+    ? Math.round(products.reduce((sum, p) => sum + p.health_score, 0) / total) 
+    : 0;
+  const highRisk = products.filter(p => p.health_score < 40).length;
+  
+  // Active alerts: count products with health score below 70 (medium-high risk)
+  const activeAlerts = products.filter(p => p.health_score < 70).length;
+
+  document.getElementById("stat-total").textContent = total;
+  document.getElementById("stat-health").textContent = avgHealth;
+  document.getElementById("stat-risk").textContent = highRisk;
+  document.getElementById("stat-alerts").textContent = activeAlerts;
+}
+
+function filterAndSortProducts() {
+  const categoryFilter = document.getElementById("category-filter")?.value || "all";
+  const riskFilter = document.getElementById("risk-filter")?.value || "all";
+  const sortBy = document.getElementById("sort-select")?.value || "health-desc";
+  const searchTerm = document.getElementById("search-input")?.value.toLowerCase().trim() || "";
+
+  let filtered = [...allProducts];
+
+  // Apply category filter
+  if (categoryFilter !== "all") {
+    filtered = filtered.filter(p => p.category === categoryFilter);
+  }
+
+  // Apply risk filter
+  if (riskFilter !== "all") {
+    filtered = filtered.filter(p => {
+      if (riskFilter === "low") return p.health_score >= 70;
+      if (riskFilter === "medium") return p.health_score >= 40 && p.health_score < 70;
+      if (riskFilter === "high") return p.health_score < 40;
+      return true;
+    });
+  }
+
+  // Apply search filter
+  if (searchTerm) {
+    filtered = filtered.filter(p => 
+      p.name.toLowerCase().includes(searchTerm) || 
+      p.category.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  // Apply sorting
+  filtered.sort((a, b) => {
+    switch (sortBy) {
+      case "health-desc": return b.health_score - a.health_score;
+      case "health-asc": return a.health_score - b.health_score;
+      case "price-desc": return (b.current_price || 0) - (a.current_price || 0);
+      case "price-asc": return (a.current_price || 0) - (b.current_price || 0);
+      case "name-asc": return a.name.localeCompare(b.name);
+      case "name-desc": return b.name.localeCompare(a.name);
+      default: return 0;
+    }
+  });
+
+  renderProducts(filtered);
+}
+
+function renderProducts(products) {
+  const productsList = document.getElementById("products-list");
+  if (!productsList) return;
+
+  if (products.length === 0) {
+    productsList.innerHTML = '<div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No products match your filters.</p></div>';
+    return;
+  }
+
+  productsList.innerHTML = products.map(createProductCard).join("");
+
+  // View details buttons
+  productsList.querySelectorAll(".btn-view-details").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-product-id");
+      viewProductDetails(id);
+    });
+  });
+}
+
+function createProductCard(product) {
+  const healthClass = getHealthScoreClass(product.health_score);
+  const riskLevel = getRiskLevel(product.health_score);
+  const riskIcon = getRiskIcon(product.health_score);
+
+  const priceDisplay =
+    product.current_price !== null && product.current_price !== undefined
+      ? `$${parseFloat(product.current_price).toFixed(2)}`
+      : "N/A";
+
+  return `
+    <div class="product-item">
+      <div class="product-icon">
+        <i class="fa-solid fa-box"></i>
+      </div>
+
+      <div class="product-info">
+        <h3 class="product-name">${product.name}</h3>
+        <div class="product-meta">
+          <span class="product-category">${product.category}</span>
+          <span class="product-price">Walmart Price: ${priceDisplay}</span>
+        </div>
+      </div>
+
+      <div class="product-health">
+        <div class="health-label">Health Score</div>
+        <div class="health-score-container">
+          <div class="health-bar-wrapper">
+            <div class="health-bar-fill health-bar-${healthClass.replace('health-', '')}" style="width: ${product.health_score}%"></div>
+          </div>
+          <span class="health-score-number ${healthClass}">${product.health_score}</span>
+        </div>
+      </div>
+
+      <div class="product-status">
+        <span class="status-badge ${healthClass}">
+          ${riskIcon} ${riskLevel}
+        </span>
+      </div>
+
+      <div class="product-actions">
+        <button class="btn-view-details" data-product-id="${product.id}"> 
+        View Details
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function setLoadingUI({ loading, errorMessage }) {
+  const loadingElement = document.getElementById("loading");
+  const errorElement = document.getElementById("error");
+  const errorText = document.getElementById("error-text");
+
+  if (loadingElement) loadingElement.style.display = loading ? "flex" : "none";
+
+  if (errorElement && errorText) {
+    if (errorMessage) {
+      errorElement.style.display = "flex";
+      errorText.textContent = errorMessage;
+    } else {
+      errorElement.style.display = "none";
+      errorText.textContent = "";
+    }
+  }
+}
+
+async function fetchProducts() {
+  const productsList = document.getElementById("products-list");
+  if (!productsList) return;
+
+  setLoadingUI({ loading: true, errorMessage: null });
+  productsList.innerHTML = "";
+
+  try {
+    // Try API first
+    const res = await fetch(API_URL);
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    allProducts = Array.isArray(data) ? data.map(normalizeProduct) : [];
+  } catch (err) {
+    // TEMP for Live Server 
+    console.warn("API fetch failed, using fallback products:", err);
+    allProducts = FALLBACK_PRODUCTS.map(normalizeProduct);
+  }
+
+  setLoadingUI({ loading: false, errorMessage: null });
+
+  if (!allProducts.length) {
+    setLoadingUI({
+      loading: false,
+      errorMessage: 'No products found. Click "+ Track Product" to add products.',
+    });
+    return;
+  }
+
+  // Update statistics
+  updateDashboardStats(allProducts);
+
+  // Render products
+  filterAndSortProducts();
+}
+
+// Setup filter and sort event listeners
+function setupControls() {
+  const categoryFilter = document.getElementById("category-filter");
+  const riskFilter = document.getElementById("risk-filter");
+  const sortSelect = document.getElementById("sort-select");
+  const searchInput = document.getElementById("search-input");
+
+  if (categoryFilter) categoryFilter.addEventListener("change", filterAndSortProducts);
+  if (riskFilter) riskFilter.addEventListener("change", filterAndSortProducts);
+  if (sortSelect) sortSelect.addEventListener("change", filterAndSortProducts);
+  if (searchInput) searchInput.addEventListener("input", filterAndSortProducts);
+}
+
+// Placeholder
+function viewProductDetails(productId) {
+  alert(`Product details for ID ${productId} will be implemented later`);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  setupControls();
+  fetchProducts();
+});

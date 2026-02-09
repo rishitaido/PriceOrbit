@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceOrbit - Tracked Products</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- FastAPI (when deploying) 
+  <link rel="stylesheet" href="/static/css/main.css"> 
+  <script src="/static/js/products.js"></script> -->
+
+  <!-- Live Server -->
+   <link rel="stylesheet" href="../static/css/main.css" /> 
+
+
+</head>
+
+<body>
+  <!-- Top Header Bar -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <img src="../static/images/logo.png" alt="PriceOrbit Logo">
+      </div>
+
+      <div class="topbar-right">
+        <div class="search-container">
+          <i class="fa-solid fa-search"></i>
+          <input type="text" id="search-input" placeholder="Search products..." />
+        </div>
+        <a href="/docs" class="btn-api-docs" target="_blank" title="View API Documentation">
+          <i class="fa-solid fa-code"></i> API Docs
+        </a>
+        <button class="btn-track-product" type="button">
+          <i class="fa-solid fa-plus"></i> Track Product
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar + Content -->
+  <div class="layout">
+    <aside class="sidebar">
+      <ul>
+        <li>
+          <a href="products.html" class="active">
+            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+            <span class="text">Dashboard</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="#tracked_products">
+            <span class="icon"><i class="fa-solid fa-box"></i></span>
+            <span class="text">Tracked Products</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="#store-locator">
+            <span class="icon"><i class="fa-solid fa-store"></i></span>
+            <span class="text">Store Locator</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="#alerts">
+            <span class="icon"><i class="fa-solid fa-bell"></i></span>
+            <span class="text">Alerts</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="#settings">
+            <span class="icon"><i class="fa-solid fa-gear"></i></span>
+            <span class="text">Settings</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-header">
+        <h1>Dashboard</h1>
+        <p>Monitor price trends and health scores for your products</p>
+      </div>
+
+      <!-- Dashboard Statistics Cards -->
+      <div class="dashboard-stats">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #3b82f6;">
+            <i class="fa-solid fa-box"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Tracked Products</p>
+            <p class="stat-value" id="stat-total">0</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #10b981;">
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Avg Health Score</p>
+            <p class="stat-value" id="stat-health">0</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #ef4444;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">High Risk Items</p>
+            <p class="stat-value" id="stat-risk">0</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #f59e0b;">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Active Alerts</p>
+            <p class="stat-value" id="stat-alerts">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters and Sort Controls -->
+      <div class="controls-bar">
+        <div class="filter-group">
+          <label for="category-filter">
+            <i class="fa-solid fa-filter"></i> Category:
+          </label>
+          <select id="category-filter">
+            <option value="all">All Categories</option>
+            <option value="Dairy">Dairy</option>
+            <option value="Baby Products">Baby Products</option>
+            <option value="Pantry">Pantry</option>
+            <option value="Produce">Produce</option>
+            <option value="Meat">Meat</option>
+            <option value="Frozen">Frozen</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="risk-filter">
+            <i class="fa-solid fa-shield"></i> Risk Level:
+          </label>
+          <select id="risk-filter">
+            <option value="all">All Levels</option>
+            <option value="low">Low Risk (70-100)</option>
+            <option value="medium">Medium Risk (40-69)</option>
+            <option value="high">High Risk (0-39)</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="sort-select">
+            <i class="fa-solid fa-arrow-down-short-wide"></i> Sort By:
+          </label>
+          <select id="sort-select">
+            <option value="health-desc">Health Score (High to Low)</option>
+            <option value="health-asc">Health Score (Low to High)</option>
+            <option value="price-desc">Price (High to Low)</option>
+            <option value="price-asc">Price (Low to High)</option>
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading" class="loading-state">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <p>Loading products...</p>
+      </div>
+
+      <!-- Error State -->
+      <div id="error" class="error-state" style="display:none;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p id="error-text"></p>
+      </div>
+
+      <!-- Products List -->
+      <div id="products-list" class="products-list">
+        <!-- JS injects products here -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Core JavaScript utilities (loaded first) -->
+  <script src="../static/js/main.js"></script>
+  <!-- Product-specific functionality -->
+  <script src="../static/js/products.js"></script>
+</body>
+</html>
