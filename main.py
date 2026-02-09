@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from app.core.config import settings 
 from app.routers import main as main_router 
-from app.routers import products 
+#from app.routers import products 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
