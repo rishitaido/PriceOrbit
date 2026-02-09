@@ -1,11 +1,5 @@
 import pytest
 import os
-
-pytestmark = pytest.mark.skipif(
-    os.getenv("CI") == "true",
-    reason="Requires MySQL database"
-)
-
 from app.services.product_service import (
     create_product,
     get_product,
@@ -14,6 +8,11 @@ from app.services.product_service import (
     delete_product,
 )
 
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("CI") == "true",
+    reason="Requires MySQL database"
+)
 
 def test_create_product(db):
     product = create_product(db, {
