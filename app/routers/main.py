@@ -20,7 +20,15 @@ async def home(request: Request):
         {"request": request, "title" : "PriceOrbit - Grocery Price Predictions"}
     )
 
-@router.get("/about", response_class=HTMLResponse, tags=["pages"])
+@router.get("/products.html", response_class=HTMLResponse, tags=["pages"])
+async def products(request: Request): 
+    return templates.TemplateResponse(
+        'products.html', 
+        {"request": request, 'title' : "Products page"}
+    )
+
+
+@router.get("/about.html", response_class=HTMLResponse, tags=["pages"])
 async def about(request: Request):
     """
     About page explaining PriceOrbit
