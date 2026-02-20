@@ -58,10 +58,15 @@ def _mock_product_response(products: list[dict]) -> MagicMock:
     resp = MagicMock(spec=httpx.Response)
     resp.status_code = 200
     resp.is_success = True
-    resp.json.return_value = {
-        "data": products,
-        "meta": {"pagination": {"total": len(products)}},
-    }
+    resp.json.return_value = {"data": products, "meta": {}}
+    return resp
+
+
+def _mock_single_product_response(product: dict) -> MagicMock:
+    resp = MagicMock(spec=httpx.Response)
+    resp.status_code = 200
+    resp.is_success = True
+    resp.json.return_value = {"data": product, "meta": {}}
     return resp
 
 
@@ -74,16 +79,32 @@ SAMPLE_PRODUCT = {
         {
             "itemId": "0001111060903",
             "size": "1 gal",
+            "soldBy": "unit",
             "price": {
                 "regular": 5.99,
                 "promo": 4.99,
                 "regularPerUnitEstimate": 5.99,
+                "promoPerUnitEstimate": 4.99,
             },
-            "fulfillment": {"inStore": True, "pickupEligible": True},
+            "nationalPrice": {
+                "regular": 6.29,
+                "promo": None,
+                "regularPerUnitEstimate": 6.29,
+                "promoPerUnitEstimate": None,
+            },
+            "fulfillment": {
+                "instore": True,
+                "curbside": True,
+                "delivery": False,
+                "shiptohome": False,
+            },
+            "inventory": {"stockLevel": "HIGH"},
         }
     ],
 }
 
+
+# --- Authentication ---
 
 @pytest.mark.asyncio
 async def test_token_fetched_on_first_call(service: KrogerService):
@@ -106,8 +127,7 @@ async def test_token_fetched_on_first_call(service: KrogerService):
 async def test_token_not_refreshed_when_valid(service: KrogerService):
     _token_store.access_token = "cached-token"
     _token_store.expires_at = time.monotonic() + 3600
-    product_resp = _mock_product_response([SAMPLE_PRODUCT])
-    service._http.request = AsyncMock(return_value=product_resp)
+    service._http.request = AsyncMock(return_value=_mock_product_response([SAMPLE_PRODUCT]))
 
     with patch("httpx.AsyncClient") as MockClient:
         await service.search_products("eggs")
@@ -122,13 +142,13 @@ async def test_token_refreshed_on_401(service: KrogerService):
     unauthorized = MagicMock(spec=httpx.Response)
     unauthorized.status_code = 401
     unauthorized.is_success = False
-    success_resp = _mock_product_response([SAMPLE_PRODUCT])
-    service._http.request = AsyncMock(side_effect=[unauthorized, success_resp])
+    service._http.request = AsyncMock(
+        side_effect=[unauthorized, _mock_product_response([SAMPLE_PRODUCT])]
+    )
 
-    token_resp = _mock_token_response()
     with patch("httpx.AsyncClient") as MockClient:
         mock_ctx = AsyncMock()
-        mock_ctx.post = AsyncMock(return_value=token_resp)
+        mock_ctx.post = AsyncMock(return_value=_mock_token_response())
         MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
         MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
         results = await service.search_products("cheese")
@@ -154,12 +174,13 @@ async def test_token_request_failure_raises():
                 await svc._fetch_token()
 
 
+# --- search_products ---
+
 @pytest.mark.asyncio
 async def test_search_products_returns_list(service: KrogerService):
     _token_store.access_token = "tok"
     _token_store.expires_at = time.monotonic() + 3600
-    product_resp = _mock_product_response([SAMPLE_PRODUCT])
-    service._http.request = AsyncMock(return_value=product_resp)
+    service._http.request = AsyncMock(return_value=_mock_product_response([SAMPLE_PRODUCT]))
 
     results = await service.search_products("milk")
     assert isinstance(results, list)
@@ -167,49 +188,137 @@ async def test_search_products_returns_list(service: KrogerService):
 
 
 @pytest.mark.asyncio
-async def test_search_products_passes_query_param(service: KrogerService):
+async def test_search_products_passes_correct_params(service: KrogerService):
     _token_store.access_token = "tok"
     _token_store.expires_at = time.monotonic() + 3600
-    product_resp = _mock_product_response([])
-    service._http.request = AsyncMock(return_value=product_resp)
+    service._http.request = AsyncMock(return_value=_mock_product_response([]))
 
-    await service.search_products("butter")
+    await service.search_products("butter", brand="Kroger", fulfillment="ais", limit=5, start=1)
+
     call_kwargs = service._http.request.call_args
-    params = call_kwargs[1]["params"] if "params" in call_kwargs[1] else call_kwargs[0][2]
+    params = call_kwargs[1].get("params") or call_kwargs[0][2]
     assert params["filter.term"] == "butter"
+    assert params["filter.brand"] == "Kroger"
+    assert params["filter.fulfillment"] == "ais"
+    assert params["filter.limit"] == 5
+    assert params["filter.start"] == 1
+
+
+@pytest.mark.asyncio
+async def test_search_products_clamps_limit(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+    service._http.request = AsyncMock(return_value=_mock_product_response([]))
+
+    await service.search_products("milk", limit=999)
+
+    call_kwargs = service._http.request.call_args
+    params = call_kwargs[1].get("params") or call_kwargs[0][2]
+    assert params["filter.limit"] == 50
+
+
+@pytest.mark.asyncio
+async def test_search_products_rejects_over_8_words(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+
+    with pytest.raises(ValueError, match="8-word"):
+        await service.search_products("one two three four five six seven eight nine")
+
+
+@pytest.mark.asyncio
+async def test_search_requires_query_or_brand(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+
+    with pytest.raises(ValueError, match="query.*brand"):
+        await service.search_products("")
 
 
 @pytest.mark.asyncio
 async def test_search_products_empty_returns_empty_list(service: KrogerService):
     _token_store.access_token = "tok"
     _token_store.expires_at = time.monotonic() + 3600
-    product_resp = _mock_product_response([])
-    service._http.request = AsyncMock(return_value=product_resp)
+    service._http.request = AsyncMock(return_value=_mock_product_response([]))
 
     results = await service.search_products("xyznonexistentproduct999")
     assert results == []
 
 
+# --- get_product_by_id ---
+
+@pytest.mark.asyncio
+async def test_get_product_by_id_success(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+    service._http.request = AsyncMock(
+        return_value=_mock_single_product_response(SAMPLE_PRODUCT)
+    )
+
+    result = await service.get_product_by_id("0001111060903")
+    assert result["productId"] == SAMPLE_PRODUCT["productId"]
+    assert result["description"] == SAMPLE_PRODUCT["description"]
+
+
+@pytest.mark.asyncio
+async def test_get_product_by_id_invalid_length_raises(service: KrogerService):
+    with pytest.raises(ValueError, match="13 digits"):
+        await service.get_product_by_id("123")
+
+
+@pytest.mark.asyncio
+async def test_get_product_by_id_passes_location(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+    service._http.request = AsyncMock(
+        return_value=_mock_single_product_response(SAMPLE_PRODUCT)
+    )
+
+    await service.get_product_by_id("0001111060903")
+
+    call_kwargs = service._http.request.call_args
+    params = call_kwargs[1].get("params") or call_kwargs[0][2]
+    assert "filter.locationId" in params
+
+
+# --- get_product_price ---
+
 @pytest.mark.asyncio
 async def test_get_product_price_success(service: KrogerService):
     _token_store.access_token = "tok"
     _token_store.expires_at = time.monotonic() + 3600
-    product_resp = _mock_product_response([SAMPLE_PRODUCT])
-    service._http.request = AsyncMock(return_value=product_resp)
+    service._http.request = AsyncMock(return_value=_mock_product_response([SAMPLE_PRODUCT]))
 
     result = await service.get_product_price("organic milk")
     assert result["productId"] == SAMPLE_PRODUCT["productId"]
     assert result["price"]["regular"] == 5.99
     assert result["price"]["promo"] == 4.99
-    assert result["price"]["unitOfMeasure"] == "1 gal"
+    assert result["price"]["regularPerUnitEstimate"] == 5.99
+    assert result["nationalPrice"]["regular"] == 6.29
+    assert result["size"] == "1 gal"
+    assert result["soldBy"] == "unit"
+    assert result["stockLevel"] == "HIGH"
+
+
+@pytest.mark.asyncio
+async def test_get_product_price_fulfillment_keys(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+    service._http.request = AsyncMock(return_value=_mock_product_response([SAMPLE_PRODUCT]))
+
+    result = await service.get_product_price("milk")
+    f = result["fulfillment"]
+    assert f["instore"] is True
+    assert f["curbside"] is True
+    assert f["delivery"] is False
+    assert f["shiptohome"] is False
 
 
 @pytest.mark.asyncio
 async def test_get_product_price_no_results_raises(service: KrogerService):
     _token_store.access_token = "tok"
     _token_store.expires_at = time.monotonic() + 3600
-    product_resp = _mock_product_response([])
-    service._http.request = AsyncMock(return_value=product_resp)
+    service._http.request = AsyncMock(return_value=_mock_product_response([]))
 
     with pytest.raises(KrogerAPIError, match="No products found"):
         await service.get_product_price("zyxwvutsrq")
@@ -220,12 +329,16 @@ async def test_get_product_price_no_items_returns_empty_price(service: KrogerSer
     product_no_items = {**SAMPLE_PRODUCT, "items": []}
     _token_store.access_token = "tok"
     _token_store.expires_at = time.monotonic() + 3600
-    product_resp = _mock_product_response([product_no_items])
-    service._http.request = AsyncMock(return_value=product_resp)
+    service._http.request = AsyncMock(return_value=_mock_product_response([product_no_items]))
 
     result = await service.get_product_price("mystery item")
-    assert result["price"] == {}
+    assert result["price"] == {
+        "regular": None, "promo": None,
+        "regularPerUnitEstimate": None, "promoPerUnitEstimate": None,
+    }
 
+
+# --- Error handling ---
 
 @pytest.mark.asyncio
 async def test_rate_limit_raises_KrogerRateLimitError(service: KrogerService):
@@ -263,6 +376,21 @@ async def test_network_error_raises_KrogerAPIError(service: KrogerService):
 
 
 @pytest.mark.asyncio
+async def test_400_parses_reason_field(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+
+    bad_req = MagicMock(spec=httpx.Response)
+    bad_req.status_code = 400
+    bad_req.is_success = False
+    bad_req.json.return_value = {"reason": "Field 'locationId' must have a length of 8 characters", "code": "API-4101-400"}
+    service._http.request = AsyncMock(return_value=bad_req)
+
+    with pytest.raises(KrogerAPIError, match="locationId"):
+        await service.search_products("milk")
+
+
+@pytest.mark.asyncio
 async def test_5xx_retries_then_raises(service: KrogerService):
     _token_store.access_token = "tok"
     _token_store.expires_at = time.monotonic() + 3600
@@ -270,7 +398,7 @@ async def test_5xx_retries_then_raises(service: KrogerService):
     server_error = MagicMock(spec=httpx.Response)
     server_error.status_code = 503
     server_error.is_success = False
-    server_error.text = "Service Unavailable"
+    server_error.json.return_value = {"errors": {"reason": "Internal server error"}}
     service._http.request = AsyncMock(return_value=server_error)
 
     with patch("asyncio.sleep", new_callable=AsyncMock):
@@ -293,13 +421,14 @@ async def test_invalid_json_raises_KrogerAPIError(service: KrogerService):
         await service.search_products("milk")
 
 
+# --- Cache ---
+
 @pytest.mark.asyncio
 async def test_cache_is_used_on_second_call():
     async with KrogerService(CLIENT_ID, CLIENT_SECRET, use_cache=True) as svc:
         _token_store.access_token = "tok"
         _token_store.expires_at = time.monotonic() + 3600
-        product_resp = _mock_product_response([SAMPLE_PRODUCT])
-        svc._http.request = AsyncMock(return_value=product_resp)
+        svc._http.request = AsyncMock(return_value=_mock_product_response([SAMPLE_PRODUCT]))
 
         r1 = await svc.search_products("milk")
         r2 = await svc.search_products("milk")
@@ -310,16 +439,15 @@ async def test_cache_is_used_on_second_call():
 
 @pytest.mark.asyncio
 async def test_cache_expires():
-    _cache_set("search:milk:10:1", [SAMPLE_PRODUCT])
-    _response_cache["search:milk:10:1"] = (time.monotonic() - 9999, [SAMPLE_PRODUCT])
-    assert _cache_get("search:milk:10:1") is None
+    _cache_set("search:milk:None:None:10:1", [SAMPLE_PRODUCT])
+    _response_cache["search:milk:None:None:10:1"] = (time.monotonic() - 9999, [SAMPLE_PRODUCT])
+    assert _cache_get("search:milk:None:None:10:1") is None
 
 
 def test_clear_cache():
     _cache_set("some:key", {"data": True})
     assert _cache_get("some:key") is not None
-    svc = KrogerService(CLIENT_ID, CLIENT_SECRET)
-    svc.clear_cache()
+    KrogerService(CLIENT_ID, CLIENT_SECRET).clear_cache()
     assert _cache_get("some:key") is None
 
 
