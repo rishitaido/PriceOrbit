@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import httpx
 
@@ -13,7 +13,9 @@ logging.basicConfig(
 
 KROGER_TOKEN_URL = "https://api.kroger.com/v1/connect/oauth2/token"
 KROGER_BASE_URL = "https://api.kroger.com/v1"
-KROGER_SCOPES = "product.compact"
+KROGER_SCOPES = "product.basic"
+
+FulfillmentFilter = Literal["ais", "csp", "dth", "sth"]
 
 _response_cache: dict[str, tuple[float, Any]] = {}
 CACHE_TTL_SECONDS = 300
@@ -62,6 +64,19 @@ class KrogerRateLimitError(KrogerAPIError):
     pass
 
 
+def _parse_error_reason(response: httpx.Response) -> str:
+    try:
+        body = response.json()
+        if "reason" in body:
+            return body["reason"]
+        errors = body.get("errors", {})
+        if isinstance(errors, dict):
+            return errors.get("reason") or errors.get("error_description") or response.text
+    except Exception:
+        pass
+    return response.text
+
+
 class KrogerService:
     def __init__(
         self,
@@ -91,7 +106,7 @@ class KrogerService:
         await self.aclose()
 
     async def _fetch_token(self) -> None:
-        logger.debug("Fetching new OAuth token from Kroger…")
+        logger.debug("Fetching new OAuth token from Kroger...")
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(
                 KROGER_TOKEN_URL,
@@ -105,7 +120,7 @@ class KrogerService:
 
         if response.status_code != 200:
             raise KrogerAPIError(
-                f"Token request failed: {response.status_code} – {response.text}",
+                f"Token request failed: {response.status_code} - {response.text}",
                 status_code=response.status_code,
             )
 
@@ -131,7 +146,7 @@ class KrogerService:
         headers = {"Authorization": f"Bearer {token}"}
 
         for attempt in range(retries + 1):
-            logger.debug("→ %s %s params=%s (attempt %d)", method, path, params, attempt + 1)
+            logger.debug("-> %s %s params=%s (attempt %d)", method, path, params, attempt + 1)
             try:
                 response = await self._http.request(
                     method, path, params=params, headers=headers
@@ -141,10 +156,10 @@ class KrogerService:
             except httpx.RequestError as exc:
                 raise KrogerAPIError(f"Network error: {exc}") from exc
 
-            logger.debug("← %s %s", response.status_code, path)
+            logger.debug("<- %s %s", response.status_code, path)
 
             if response.status_code == 401 and attempt == 0:
-                logger.warning("401 received – refreshing token and retrying…")
+                logger.warning("401 received - refreshing token and retrying...")
                 async with _token_store._lock:
                     await self._fetch_token()
                 headers["Authorization"] = f"Bearer {_token_store.access_token}"
@@ -159,13 +174,14 @@ class KrogerService:
 
             if response.status_code >= 500 and attempt < retries:
                 backoff = 2 ** attempt
-                logger.warning("5xx error – retrying in %ss…", backoff)
+                logger.warning("5xx error - retrying in %ss...", backoff)
                 await asyncio.sleep(backoff)
                 continue
 
             if not response.is_success:
+                reason = _parse_error_reason(response)
                 raise KrogerAPIError(
-                    f"API error {response.status_code}: {response.text}",
+                    f"API error {response.status_code}: {reason}",
                     status_code=response.status_code,
                 )
 
@@ -179,54 +195,64 @@ class KrogerService:
     async def search_products(
         self,
         query: str,
+        *,
+        brand: Optional[str] = None,
+        fulfillment: Optional[FulfillmentFilter] = None,
         limit: int = 10,
-        page: int = 1,
+        start: int = 1,
     ) -> list[dict]:
-        cache_key = f"search:{query}:{limit}:{page}"
+        if not query and not brand:
+            raise ValueError("At least one of 'query' or 'brand' is required.")
+
+        word_count = len(query.split()) if query else 0
+        if word_count > 8:
+            raise ValueError(f"Search term exceeds the 8-word API limit (got {word_count} words).")
+
+        cache_key = f"search:{query}:{brand}:{fulfillment}:{limit}:{start}"
         if self.use_cache and (cached := _cache_get(cache_key)):
             return cached
 
-        params = {
-            "filter.term": query,
-            "filter.limit": min(limit, 50),
-            "filter.start": (page - 1) * min(limit, 50) + 1,
+        params: dict[str, Any] = {
+            "filter.limit": max(1, min(limit, 50)),
+            "filter.start": max(1, min(start, 1000)),
             "filter.locationId": self.location_id,
         }
+        if query:
+            params["filter.term"] = query
+        if brand:
+            params["filter.brand"] = brand
+        if fulfillment:
+            params["filter.fulfillment"] = fulfillment
 
         data = await self._request("GET", "/products", params=params)
         products: list[dict] = data.get("data", [])
 
-        total_requested = limit
-        fetched = len(products)
-        current_page = page
-
-        while fetched < total_requested:
-            meta = data.get("meta", {})
-            pagination = meta.get("pagination", {})
-            total_available = pagination.get("total", fetched)
-
-            if fetched >= total_available:
-                break
-
-            current_page += 1
-            next_params = {**params, "filter.start": (current_page - 1) * 50 + 1}
-            data = await self._request("GET", "/products", params=next_params)
-            next_products = data.get("data", [])
-            if not next_products:
-                break
-            products.extend(next_products)
-            fetched = len(products)
-
-        products = products[:total_requested]
-
         if self.use_cache:
             _cache_set(cache_key, products)
 
-        logger.info("search_products('%s') → %d results", query, len(products))
+        logger.info("search_products('%s') -> %d results", query or brand, len(products))
         return products
 
+    async def get_product_by_id(self, product_id: str) -> dict:
+        if len(product_id) != 13:
+            raise ValueError(f"productId must be exactly 13 digits (got {len(product_id)}).")
+
+        cache_key = f"product:{product_id}:{self.location_id}"
+        if self.use_cache and (cached := _cache_get(cache_key)):
+            return cached
+
+        params = {"filter.locationId": self.location_id}
+        data = await self._request("GET", f"/products/{product_id}", params=params)
+        product: dict = data.get("data", {})
+
+        if self.use_cache:
+            _cache_set(cache_key, product)
+
+        logger.info("get_product_by_id('%s') -> %s", product_id, product.get("description"))
+        return product
+
     async def get_product_price(self, product_name: str) -> dict:
-        cache_key = f"price:{product_name}"
+        cache_key = f"price:{product_name}:{self.location_id}"
         if self.use_cache and (cached := _cache_get(cache_key)):
             return cached
 
@@ -237,34 +263,44 @@ class KrogerService:
 
         product = products[0]
         items: list[dict] = product.get("items", [])
-        price_data: dict = {}
+        item = items[0] if items else {}
 
-        if items:
-            item = items[0]
-            price_block = item.get("price", {})
-            price_data = {
-                "regular": price_block.get("regular"),
-                "promo": price_block.get("promo"),
-                "unitOfMeasure": item.get("size"),
-                "pricePer": price_block.get("regularPerUnitEstimate"),
+        def _extract_price(block: dict) -> dict:
+            return {
+                "regular": block.get("regular"),
+                "promo": block.get("promo"),
+                "regularPerUnitEstimate": block.get("regularPerUnitEstimate"),
+                "promoPerUnitEstimate": block.get("promoPerUnitEstimate"),
             }
+
+        fulfillment_block = item.get("fulfillment", {})
+        inventory_block = item.get("inventory", {})
 
         result = {
             "productId": product.get("productId"),
             "description": product.get("description"),
             "brand": product.get("brand"),
-            "price": price_data,
-            "fulfillment": items[0].get("fulfillment", {}) if items else {},
+            "size": item.get("size"),
+            "soldBy": item.get("soldBy"),
+            "stockLevel": inventory_block.get("stockLevel"),
+            "price": _extract_price(item.get("price", {})),
+            "nationalPrice": _extract_price(item.get("nationalPrice", {})),
+            "fulfillment": {
+                "instore": fulfillment_block.get("instore"),
+                "curbside": fulfillment_block.get("curbside"),
+                "delivery": fulfillment_block.get("delivery"),
+                "shiptohome": fulfillment_block.get("shiptohome"),
+            },
         }
 
         if self.use_cache:
             _cache_set(cache_key, result)
 
         logger.info(
-            "get_product_price('%s') → %s @ $%s",
+            "get_product_price('%s') -> %s @ $%s",
             product_name,
             result["description"],
-            price_data.get("regular"),
+            result["price"].get("regular"),
         )
         return result
 
