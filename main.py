@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from app.core.config import settings 
-from app.routers import main as main_router 
-#from app.routers import products 
+from app.routers.main import router as main_router 
+from app.routers.products import router as products_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,8 +44,8 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 #Include Routers 
-app.include_router(main_router.router, tags=["main"])
-#app.include_router(products.router, prefix= "/api/products", tags = ["products"])
+app.include_router(main_router, tags=["main"])
+app.include_router(products_router, prefix= "/api/products", tags = ["products"])
 
 @app.get("/health", tags = ["health"])
 def health_check(): 

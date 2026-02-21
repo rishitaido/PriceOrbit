@@ -198,40 +198,33 @@ async function fetchProducts() {
   if (!productsList) return;
 
   setLoadingUI({ loading: true, errorMessage: null });
-  productsList.innerHTML = "";
 
   try {
-    // Try API first
-    const res = await fetch(API_URL);
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    const res = await fetch("/api/products?skip=0&limit=50");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();
-    allProducts = Array.isArray(data) ? data.map(normalizeProduct) : [];
+    // Save to the global array so filtering/sorting works later
+    allProducts = Array.isArray(data) ? data : data.products;
+
+    if (!allProducts || allProducts.length === 0) {
+      setLoadingUI({ loading: false, errorMessage: "No products found in database." });
+      return;
+    }
+
+    // Display the products and update the stats
+    renderProducts(allProducts);
+    updateDashboardStats(allProducts);
+    setLoadingUI({ loading: false, errorMessage: null });
+
   } catch (err) {
-    // TEMP for Live Server 
-    console.warn("API fetch failed, using fallback products:", err);
-    allProducts = FALLBACK_PRODUCTS.map(normalizeProduct);
+    console.error("Backend connection failed:", err);
+    setLoadingUI({ loading: false, errorMessage: "Failed to connect to PriceOrbit API." });
   }
-
-  setLoadingUI({ loading: false, errorMessage: null });
-
-  if (!allProducts.length) {
-    setLoadingUI({
-      loading: false,
-      errorMessage: 'No products found. Click "+ Track Product" to add products.',
-    });
-    return;
-  }
-
-  // Update statistics
-  updateDashboardStats(allProducts);
-
-  // Render products
-  filterAndSortProducts();
 }
+
+
+
 
 // Setup filter and sort event listeners
 function setupControls() {
@@ -252,6 +245,7 @@ function viewProductDetails(productId) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("Ready, fetiching products...");
   setupControls();
   fetchProducts();
 });
