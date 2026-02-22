@@ -29,6 +29,7 @@ def init_database():
     print("=" * 60)
     print("PriceOrbit Database Initialization")
     print("=" * 60)
+    _ = Product  # Ensure model is loaded for Base metadata registration
     print(f"\nDatabase: {settings.MYSQL_DATABASE}")
     print(f"Host: {settings.MYSQL_HOST}:{settings.MYSQL_PORT}")
     print(f"User: {settings.MYSQL_USER}")
