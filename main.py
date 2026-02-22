@@ -2,14 +2,12 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
 from app.core.config import settings 
 from app.routers import main as main_router 
-#from app.routers import products 
+from app.routers import products as products_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- startup ---
     print(f"{settings.APP_NAME} v{settings.VERSION}")
     print(f"Database: {settings.MYSQL_DATABASE}")
     print(f"Debug Mode: {settings.DEBUG}")
@@ -45,7 +43,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 #Include Routers 
 app.include_router(main_router.router, tags=["main"])
-#app.include_router(products.router, prefix= "/api/products", tags = ["products"])
+app.include_router(products_router.router, prefix= "/api/products", tags = ["products"])
 
 @app.get("/health", tags = ["health"])
 def health_check(): 
