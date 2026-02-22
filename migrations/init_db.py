@@ -29,8 +29,7 @@ def init_database():
     print("=" * 60)
     print("PriceOrbit Database Initialization")
     print("=" * 60)
-    # Ensure model modules are loaded so SQLAlchemy metadata is registered.
-    importlib.import_module("app.models.product")
+    _ = Product  # Ensure model is loaded for Base metadata registration
     print(f"\nDatabase: {settings.MYSQL_DATABASE}")
     print(f"Host: {settings.MYSQL_HOST}:{settings.MYSQL_PORT}")
     print(f"User: {settings.MYSQL_USER}")
