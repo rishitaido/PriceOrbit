@@ -5,7 +5,7 @@ import httpx
 import pytest
 import pytest_asyncio
 
-from services.kroger_service import (
+from app.services.kroger_service import (
     KrogerAPIError,
     KrogerRateLimitError,
     KrogerService,

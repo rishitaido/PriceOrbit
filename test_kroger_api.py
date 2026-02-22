@@ -169,12 +169,28 @@ _SUPPORTS_COLOR = sys.stdout.isatty() and os.name != "nt"
 def _c(code: str, text: str) -> str:
     return f"\033[{code}m{text}\033[0m" if _SUPPORTS_COLOR else text
 
-GREEN  = lambda t: _c("32", t)
-RED    = lambda t: _c("31", t)
-YELLOW = lambda t: _c("33", t)
-CYAN   = lambda t: _c("36", t)
-BOLD   = lambda t: _c("1",  t)
-DIM    = lambda t: _c("2",  t)
+def GREEN(t: str) -> str:
+    return _c("32", t)
+
+
+def RED(t: str) -> str:
+    return _c("31", t)
+
+
+def YELLOW(t: str) -> str:
+    return _c("33", t)
+
+
+def CYAN(t: str) -> str:
+    return _c("36", t)
+
+
+def BOLD(t: str) -> str:
+    return _c("1", t)
+
+
+def DIM(t: str) -> str:
+    return _c("2", t)
 
 BOX_W = 67
 

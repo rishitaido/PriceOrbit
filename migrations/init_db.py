@@ -11,6 +11,7 @@ After running this script, you MUST run:
 """
 import sys
 from pathlib import Path
+import importlib
 
 # Add parent directory to path to import app modules
 sys.path.append(str(Path(__file__).parent.parent))
@@ -18,7 +19,6 @@ sys.path.append(str(Path(__file__).parent.parent))
 from app.db.base import Base
 from app.db.session import engine
 from app.core.config import settings
-from app.models.product import Product  # Import to register with Base
 
 
 def init_database():
@@ -29,6 +29,8 @@ def init_database():
     print("=" * 60)
     print("PriceOrbit Database Initialization")
     print("=" * 60)
+    # Ensure model modules are loaded so SQLAlchemy metadata is registered.
+    importlib.import_module("app.models.product")
     print(f"\nDatabase: {settings.MYSQL_DATABASE}")
     print(f"Host: {settings.MYSQL_HOST}:{settings.MYSQL_PORT}")
     print(f"User: {settings.MYSQL_USER}")
