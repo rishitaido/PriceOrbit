@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Optional
 
 try:
-    from services.kroger_service import KrogerService, KrogerAPIError, KrogerRateLimitError
+    from app.services.kroger_service import KrogerService, KrogerAPIError, KrogerRateLimitError
 except ImportError:
     import httpx
 
