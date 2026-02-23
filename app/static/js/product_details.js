@@ -41,7 +41,7 @@ async function loadProductDetail(productId) {
     
     // Try to fetch price history
     try {
-      const historyResponse = await fetch(`${API_BASE}/${productId}`);
+      const historyResponse = await fetch(`${API_BASE}/${productId}/price-history`);
       
       if (historyResponse.ok) {
         const historyData = await historyResponse.json();
@@ -198,18 +198,19 @@ function displayPriceHistory(historyData) {
     return;
   }
   
-  // Prepare chart data
   const labels = history.map(h => formatChartDate(h.date));
   const prices = history.map(h => parseFloat(h.price));
   
-  // Create chart
   createPriceChart(labels.reverse(), prices.reverse());
   
-  // Display statistics
   const stats = historyData.statistics || calculateStatistics(prices);
-  displayStatistics(stats);
   
-  // Display recent updates
+  // pull current_price from top level if stats.current is missing
+  if (!stats.current) {
+    stats.current = historyData.current_price;
+  }
+  
+  displayStatistics(stats);
   displayRecentUpdates(history.slice(-10).reverse());
 }
 
