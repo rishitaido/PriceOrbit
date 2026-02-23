@@ -1,0 +1,599 @@
+/* =========================
+   PRODUCT DETAIL PAGE
+   Extends main.css design system
+========================= */
+
+/* Back Navigation */
+.back-nav {
+  margin-bottom: 20px;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  color: #111;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+  background: #f8f9fa;
+  border-color: #ddd;
+  transform: translateX(-2px);
+}
+
+/* Primary Button */
+.btn-primary {
+  padding: 12px 24px;
+  background: #111;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Product Detail Container */
+.product-detail {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Detail Cards - matching products.html style */
+.detail-card {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s ease;
+}
+
+.detail-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+/* Card Title */
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-title i {
+  color: #666;
+  font-size: 16px;
+}
+
+/* Header Card */
+.header-card {
+  margin-bottom: 24px;
+}
+
+.product-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+}
+
+.product-title-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+}
+
+.product-icon-large {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.product-icon-large i {
+  font-size: 36px;
+  color: #6b7280;
+}
+
+.detail-product-name {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 6px;
+}
+
+.detail-product-category {
+  font-size: 16px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-product-category::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: #666;
+  border-radius: 50%;
+}
+
+/* Health Score Large Circle */
+.health-score-large {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.health-score-circle {
+  width: 120px;
+  height: 120px;
+}
+
+.health-score-circle svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.score-bg {
+  fill: none;
+  stroke: #e5e7eb;
+  stroke-width: 8;
+}
+
+.score-fill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+  stroke-dasharray: 0 251.2;
+}
+
+.score-text {
+  font-size: 28px;
+  font-weight: 700;
+  fill: #111;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  transform: rotate(90deg);
+  transform-origin: center;
+}
+
+.health-score-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.status-badge {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-badge.low-risk {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.medium-risk {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+.status-badge.high-risk {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.score-label-text {
+  font-size: 13px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Detail Grid Layout */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.detail-column-left,
+.detail-column-right {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Price Display Section */
+.price-display-section {
+  margin-bottom: 6px;
+}
+
+.current-price-large {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.current-price-large span:first-child {
+  font-size: 48px;
+  font-weight: 700;
+  color: #111;
+}
+
+.price-badge {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.price-badge.up {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.price-badge.down {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* Price Stats Grid */
+.price-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.price-stat-item {
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-label-sm {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value-sm {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+}
+
+/* Info Rows */
+.info-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+}
+
+/* Badge Pills */
+.badge-pill {
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.badge-pill.import-low {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.badge-pill.import-medium {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+.badge-pill.import-high {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Health Score Breakdown */
+.breakdown-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.breakdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.breakdown-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.breakdown-weight {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.progress-bar-wrapper {
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.6s ease, background-color 0.3s ease;
+}
+
+/* Product Description */
+.product-description-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.metadata-footer {
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+  font-size: 14px;
+  color: #666;
+}
+
+.metadata-footer strong {
+  color: #333;
+}
+
+/* Chart Card */
+.chart-card {
+  min-height: 420px;
+}
+
+.chart-wrapper {
+  height: 320px;
+  position: relative;
+}
+
+.chart-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 320px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.chart-empty-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+
+.chart-empty-state p {
+  font-size: 16px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.chart-empty-state small {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* Statistics Grid */
+.stats-grid-detail {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-box-detail {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+}
+
+.stat-label-box {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.stat-value-box {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111;
+}
+
+.volatility-display {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+}
+
+.volatility-value {
+  color: #3b82f6;
+}
+
+/* Price History List */
+.price-history-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-date {
+  font-size: 14px;
+  color: #666;
+}
+
+.history-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+}
+
+.history-price .price-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.text-muted {
+  color: #9ca3af;
+  font-size: 14px;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .product-header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .product-title-section {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .detail-product-name {
+    font-size: 28px;
+  }
+
+  .detail-product-category::before {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .detail-card {
+    padding: 18px;
+  }
+
+  .current-price-large span:first-child {
+    font-size: 36px;
+  }
+
+  .price-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .card-title {
+    font-size: 16px;
+  }
+
+  .detail-product-name {
+    font-size: 24px;
+  }
+}

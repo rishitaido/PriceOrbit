@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Details - PriceOrbit</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="/static/css/main.css">
+  
+  <!-- Product Detail CSS -->
+  <link rel="stylesheet" href="/static/css/product_details.css">
+  
+  <!-- Chart.js for price history -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+  <!-- Top Header Bar (same as products.html) -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <img src="../static/images/logo.png" alt="PriceOrbit Logo">
+      </div>
+
+      <div class="topbar-right">
+        <div class="search-container">
+          <i class="fa-solid fa-search"></i>
+          <input type="text" id="search-input" placeholder="Search products..." />
+        </div>
+        <a href="/docs" class="btn-api-docs" target="_blank" title="View API Documentation">
+          <i class="fa-solid fa-code"></i> API Docs
+        </a>
+        <button class="btn-track-product" type="button">
+          <i class="fa-solid fa-plus"></i> Track Product
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar + Content -->
+  <div class="layout">
+    <aside class="sidebar">
+      <ul>
+        <li>
+          <a href="products.html">
+            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+            <span class="text">Dashboard</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="#tracked_products">
+            <span class="icon"><i class="fa-solid fa-box"></i></span>
+            <span class="text">Tracked Products</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="#store-locator">
+            <span class="icon"><i class="fa-solid fa-store"></i></span>
+            <span class="text">Store Locator</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="#alerts">
+            <span class="icon"><i class="fa-solid fa-bell"></i></span>
+            <span class="text">Alerts</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="#settings">
+            <span class="icon"><i class="fa-solid fa-gear"></i></span>
+            <span class="text">Settings</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <!-- Back Button -->
+      <div class="back-nav">
+        <a href="products.html" class="btn-back">
+          <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+        </a>
+      </div>
+
+      <!-- Loading State -->
+      <div id="detail-loading" class="loading-state">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <p>Loading product details...</p>
+      </div>
+
+      <!-- Error State -->
+      <div id="detail-error" class="error-state" style="display:none;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p id="detail-error-text">Product not found</p>
+        <button onclick="window.location.href='products.html'" class="btn-primary">
+          Return to Dashboard
+        </button>
+      </div>
+
+      <!-- Product Detail Container -->
+      <div id="product-detail" class="product-detail" style="display:none;">
+        
+        <!-- Product Header Card -->
+        <div class="detail-card header-card">
+          <div class="product-header-content">
+            <div class="product-title-section">
+              <div class="product-icon-large">
+                <i class="fa-solid fa-box"></i>
+              </div>
+              <div>
+                <h1 id="product-name" class="detail-product-name">Product Name</h1>
+                <p id="product-category" class="detail-product-category">Category</p>
+              </div>
+            </div>
+            
+            <div class="health-score-large">
+              <div class="health-score-circle">
+                <svg viewBox="0 0 100 100">
+                  <circle class="score-bg" cx="50" cy="50" r="40"></circle>
+                  <circle id="score-fill" class="score-fill" cx="50" cy="50" r="40"></circle>
+                  <text x="50" y="50" class="score-text" id="score-text">50</text>
+                </svg>
+              </div>
+              <div class="health-score-label">
+                <span id="health-status" class="status-badge">Medium Risk</span>
+                <span class="score-label-text">Health Score</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grid Layout for Cards -->
+        <div class="detail-grid">
+          
+          <!-- Left Column -->
+          <div class="detail-column-left">
+            
+            <!-- Price Information Card -->
+            <div class="detail-card">
+              <h2 class="card-title">
+                <i class="fa-solid fa-dollar-sign"></i> Current Price
+              </h2>
+              <div class="price-display-section">
+                <div class="current-price-large">
+                  <span id="current-price">$0.00</span>
+                  <span id="price-change-badge" class="price-badge"></span>
+                </div>
+                <div class="price-stats-grid">
+                  <div class="price-stat-item">
+                    <span class="stat-label-sm">7-Day Change</span>
+                    <span id="change-7d" class="stat-value-sm">--</span>
+                  </div>
+                  <div class="price-stat-item">
+                    <span class="stat-label-sm">30-Day Change</span>
+                    <span id="change-30d" class="stat-value-sm">--</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Supply Chain Info Card -->
+            <div class="detail-card">
+              <h2 class="card-title">
+                <i class="fa-solid fa-globe"></i> Supply Chain Information
+              </h2>
+              <div class="info-rows">
+                <div class="info-row">
+                  <span class="info-label">Import Dependency:</span>
+                  <span id="import-dependency" class="info-value badge-pill">Unknown</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Tariff Rate:</span>
+                  <span id="tariff-rate" class="info-value">0.0%</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Origin Country:</span>
+                  <span id="origin-country" class="info-value">--</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">HTS Code:</span>
+                  <span id="hts-code" class="info-value">--</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Retailer:</span>
+                  <span id="retailer" class="info-value">Kroger</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Health Score Breakdown Card -->
+            <div class="detail-card">
+              <h2 class="card-title">
+                <i class="fa-solid fa-chart-pie"></i> Health Score Breakdown
+              </h2>
+              <div class="breakdown-section">
+                <div class="breakdown-item">
+                  <div class="breakdown-header">
+                    <span class="breakdown-label">Tariff Impact</span>
+                    <span class="breakdown-weight">40%</span>
+                  </div>
+                  <div class="progress-bar-wrapper">
+                    <div id="tariff-bar" class="progress-bar-fill" style="width: 50%"></div>
+                  </div>
+                </div>
+                
+                <div class="breakdown-item">
+                  <div class="breakdown-header">
+                    <span class="breakdown-label">Price Volatility</span>
+                    <span class="breakdown-weight">35%</span>
+                  </div>
+                  <div class="progress-bar-wrapper">
+                    <div id="volatility-bar" class="progress-bar-fill" style="width: 50%"></div>
+                  </div>
+                </div>
+                
+                <div class="breakdown-item">
+                  <div class="breakdown-header">
+                    <span class="breakdown-label">Import Dependency</span>
+                    <span class="breakdown-weight">25%</span>
+                  </div>
+                  <div class="progress-bar-wrapper">
+                    <div id="dependency-bar" class="progress-bar-fill" style="width: 50%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Product Description Card -->
+            <div class="detail-card">
+              <h2 class="card-title">
+                <i class="fa-solid fa-info-circle"></i> Product Information
+              </h2>
+              <p id="product-description" class="product-description-text">
+                No description available.
+              </p>
+              <div class="metadata-footer">
+                <p><strong>Last Updated:</strong> <span id="last-updated">--</span></p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column -->
+          <div class="detail-column-right">
+            
+            <!-- Price History Chart Card -->
+            <div class="detail-card chart-card">
+              <h2 class="card-title">
+                <i class="fa-solid fa-chart-line"></i> 30-Day Price History
+              </h2>
+              <div class="chart-wrapper">
+                <canvas id="price-chart"></canvas>
+              </div>
+              <div id="chart-empty" class="chart-empty-state" style="display:none;">
+                <i class="fa-solid fa-chart-line"></i>
+                <p>No price history available yet</p>
+                <small>Price data will appear as it's collected</small>
+              </div>
+            </div>
+
+            <!-- Price Statistics Card -->
+            <div class="detail-card">
+              <h2 class="card-title">
+                <i class="fa-solid fa-calculator"></i> Price Statistics
+              </h2>
+              <div class="stats-grid-detail">
+                <div class="stat-box-detail">
+                  <span class="stat-label-box">Current</span>
+                  <span id="stat-current" class="stat-value-box">$0.00</span>
+                </div>
+                <div class="stat-box-detail">
+                  <span class="stat-label-box">Average</span>
+                  <span id="stat-average" class="stat-value-box">$0.00</span>
+                </div>
+                <div class="stat-box-detail">
+                  <span class="stat-label-box">Minimum</span>
+                  <span id="stat-min" class="stat-value-box">$0.00</span>
+                </div>
+                <div class="stat-box-detail">
+                  <span class="stat-label-box">Maximum</span>
+                  <span id="stat-max" class="stat-value-box">$0.00</span>
+                </div>
+              </div>
+              <div class="volatility-display">
+                <span class="stat-label-box">Volatility</span>
+                <span id="stat-volatility" class="stat-value-box volatility-value">0.0%</span>
+              </div>
+            </div>
+
+            <!-- Recent Price Updates Card -->
+            <div class="detail-card">
+              <h2 class="card-title">
+                <i class="fa-solid fa-clock"></i> Recent Price Updates
+              </h2>
+              <div id="price-history-list" class="price-history-list">
+                <p class="text-muted">Loading price history...</p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="/static/js/main.js"></script>
+  <script src="/static/js/product-detail.js"></script>
+</body>
+</html>

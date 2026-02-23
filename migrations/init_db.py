@@ -11,6 +11,8 @@ After running this script, you MUST run:
 """
 import sys
 from pathlib import Path
+# importlib was previously included but isn't needed anymore
+# from app.models import product  # models are imported below when needed
 
 # Add parent directory to path to import app modules
 sys.path.append(str(Path(__file__).parent.parent))
@@ -18,7 +20,9 @@ sys.path.append(str(Path(__file__).parent.parent))
 from app.db.base import Base
 from app.db.session import engine
 from app.core.config import settings
-from app.models.product import Product  # Import to register with Base
+
+# explicit import so `init_database` can reference Product
+from app.models.product import Product
 
 
 def init_database():
@@ -29,6 +33,7 @@ def init_database():
     print("=" * 60)
     print("PriceOrbit Database Initialization")
     print("=" * 60)
+    _ = Product  # Ensure model is loaded for Base metadata registration
     print(f"\nDatabase: {settings.MYSQL_DATABASE}")
     print(f"Host: {settings.MYSQL_HOST}:{settings.MYSQL_PORT}")
     print(f"User: {settings.MYSQL_USER}")

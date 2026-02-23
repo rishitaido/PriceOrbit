@@ -88,6 +88,31 @@ class ProductListResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PricePointCreate(BaseModel):
+    """
+    Request body for POST /api/products/{id}/add-price-point.
+
+    When ``date`` is omitted or equals today, the endpoint performs a
+    full live-price update (archives old current_price, sets new
+    current_price, updates last_price_check).
+
+    When ``date`` is a past ISO-8601 date string (``YYYY-MM-DD``), the
+    entry is back-filled into price_history without touching
+    current_price — useful for importing historical data.
+    """
+
+    price: Decimal = Field(
+        ...,
+        gt=0,
+        description="New price value (must be > 0).",
+    )
+    date: Optional[str] = Field(
+        None,
+        description="ISO-8601 date (YYYY-MM-DD). Defaults to today.",
+        examples=["2025-03-15"],
+    )
+
+
 class HealthScoreColor(BaseModel):
     """Helper schema for health score color coding"""
     score: Decimal
