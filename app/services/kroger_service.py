@@ -13,7 +13,7 @@ logging.basicConfig(
 
 KROGER_TOKEN_URL = "https://api.kroger.com/v1/connect/oauth2/token"
 KROGER_BASE_URL = "https://api.kroger.com/v1"
-KROGER_SCOPES = "product.basic"
+KROGER_SCOPES = "product.compact"
 
 FulfillmentFilter = Literal["ais", "csp", "dth", "sth"]
 
@@ -115,7 +115,8 @@ class KrogerService:
                     "scope": KROGER_SCOPES,
                 },
                 auth=(self.client_id, self.client_secret),
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                headers={"Content-Type": "application/x-www-form-urlencoded",
+                         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"},
             )
 
         if response.status_code != 200:
@@ -143,7 +144,8 @@ class KrogerService:
         retries: int = 2,
     ) -> dict:
         token = await self._ensure_token()
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {"Authorization": f"Bearer {token}",
+                   "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"}
 
         for attempt in range(retries + 1):
             logger.debug("-> %s %s params=%s (attempt %d)", method, path, params, attempt + 1)
