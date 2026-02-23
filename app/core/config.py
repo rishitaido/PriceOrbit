@@ -30,7 +30,7 @@ class Settings(BaseSettings):
       # Kroger API Configuration
     KROGER_CLIENT_ID: str
     KROGER_CLIENT_SECRET: str
-    KROGER_BASE_URL: str = "https://api.kroger.com/v1"
+    KROGER_BASE_URL: str  = "https://api.kroger.com/v1"
     KROGER_AUTH_URL: str = "https://api.kroger.com/v1/connect/oauth2/token"
     
     # CORS Configuration
