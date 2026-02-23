@@ -158,7 +158,7 @@ function createProductCard(product) {
         <h3 class="product-name">${product.name}</h3>
         <div class="product-meta">
           <span class="product-category">${product.category}</span>
-          <span class="product-price">Walmart Price: ${priceDisplay}</span>
+          <span class="product-price">Kroger Price: ${priceDisplay}</span>
         </div>
       </div>
 
