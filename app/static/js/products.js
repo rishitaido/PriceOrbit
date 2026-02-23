@@ -67,12 +67,12 @@ function filterAndSortProducts() {
 
   let filtered = [...allProducts];
 
-  // Apply category filter
+  // 1. Apply category filter
   if (categoryFilter !== "all") {
     filtered = filtered.filter(p => p.category === categoryFilter);
   }
 
-  // Apply risk filter
+  // 2. Apply risk filter
   if (riskFilter !== "all") {
     filtered = filtered.filter(p => {
       if (riskFilter === "low") return p.health_score >= 70;
@@ -82,42 +82,54 @@ function filterAndSortProducts() {
     });
   }
 
-  // Apply search filter
-  if (searchTerm) {
+  // 3. Apply search filter 
+  if (searchTerm.length >= 2) {
     filtered = filtered.filter(p => 
       p.name.toLowerCase().includes(searchTerm) || 
       p.category.toLowerCase().includes(searchTerm)
     );
   }
 
-  // Apply sorting
+    // 4. Apply sorting
   filtered.sort((a, b) => {
-    switch (sortBy) {
-      case "health-desc": return b.health_score - a.health_score;
-      case "health-asc": return a.health_score - b.health_score;
-      case "price-desc": return (b.current_price || 0) - (a.current_price || 0);
-      case "price-asc": return (a.current_price || 0) - (b.current_price || 0);
-      case "name-asc": return a.name.localeCompare(b.name);
-      case "name-desc": return b.name.localeCompare(a.name);
-      default: return 0;
-    }
+    if (sortBy === "health-desc") return b.health_score - a.health_score;
+    if (sortBy === "health-asc") return a.health_score - b.health_score;
+    if (sortBy === "price-desc") return (b.current_price || 0) - (a.current_price || 0);
+    if (sortBy === "price-asc") return (a.current_price || 0) - (b.current_price || 0);
+    if (sortBy === "name-asc") return a.name.localeCompare(b.name);
+    if (sortBy === "name-desc") return b.name.localeCompare(a.name);
+    return 0;
   });
+
 
   renderProducts(filtered);
 }
 
 function renderProducts(products) {
   const productsList = document.getElementById("products-list");
+  const countBadge = document.getElementById("category-count");
   if (!productsList) return;
 
+  // Update the count badge 
+  if (countBadge) {
+    countBadge.textContent = `${products.length} Products`;
+  }
+
+  // Handle Empty State 
   if (products.length === 0) {
-    productsList.innerHTML = '<div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No products match your filters.</p></div>';
+    productsList.innerHTML = `
+      <div class="empty-state" style="text-align: center; padding: 40px;">
+        <i class="fa-solid fa-magnifying-glass" style="font-size: 3rem; color: #ccc;"></i>
+        <p style="margin-top: 10px; color: #666;">No products found matching your search.</p>
+        <button onclick="location.href='products.html'" class="btn-api-docs" style="margin-top: 10px;">Clear All Filters</button>
+      </div>`;
     return;
   }
 
+  // Render the list of products
   productsList.innerHTML = products.map(createProductCard).join("");
 
-  // View details buttons
+  // view details
   productsList.querySelectorAll(".btn-view-details").forEach(btn => {
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-product-id");
@@ -236,16 +248,91 @@ function setupControls() {
   if (categoryFilter) categoryFilter.addEventListener("change", filterAndSortProducts);
   if (riskFilter) riskFilter.addEventListener("change", filterAndSortProducts);
   if (sortSelect) sortSelect.addEventListener("change", filterAndSortProducts);
-  if (searchInput) searchInput.addEventListener("input", filterAndSortProducts);
-}
+  
+
+  
+  const clearBtn = document.getElementById("clear-filter");
+
+  // Show/Hide "Clear" button based on selection
+  categoryFilter.addEventListener("change", () => {
+    if (categoryFilter.value !== "all") {
+      clearBtn.style.display = "inline-block";
+    } else {
+      clearBtn.style.display = "none";
+  }
+  });
+
+  // Reset logic
+  clearBtn.addEventListener("click", () => {
+    categoryFilter.value = "all";           // Reset dropdown
+    clearBtn.style.display = "none";        // Hide self
+    
+    // Clear the URL parameter
+    const url = new URL(window.location);
+    url.searchParams.delete('category');
+    window.history.pushState({}, '', url);
+    
+    filterAndSortProducts();                // Refresh the list
+  });
+  }
 
 // Placeholder
 function viewProductDetails(productId) {
-  alert(`Product details for ID ${productId} will be implemented later`);
+  window.location.href = `/product/${productId}`;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("Ready, fetiching products...");
+  console.log("Ready, fetching products...");
   setupControls();
-  fetchProducts();
+  
+  // 1. Check if the URL has a category (e.g., ?category=Fresh+Produce)
+  const urlParams = new URLSearchParams(window.location.search);
+  const categoryParam = urlParams.get('category');
+
+  // 2. If it does, set the dropdown value before fetching
+  if (categoryParam) {
+    const categoryFilter = document.getElementById("category-filter");
+    if (categoryFilter) {
+      categoryFilter.value = categoryParam;
+    }
+  }
+
+  fetchProducts().then(() => {
+    // 3. Re-filter after products are loaded to match the URL
+    if (categoryParam) {
+      filterAndSortProducts();
+    }
+  });
 });
+
+let searchTimeout;
+
+const searchInput = document.getElementById("search-input");
+
+if (searchInput) {
+  searchInput.addEventListener("input", (e) => {
+    const query = e.target.value.trim();
+
+    // Clear the previous timer every time the user types
+    clearTimeout(searchTimeout);
+
+    // Wait 300ms after the user stops typing to trigger the search
+    searchTimeout = setTimeout(() => {
+      handleSearch(query);
+    }, 300);
+  });
+}
+
+function handleSearch(query) {
+  // Update URL for deep linking
+  const url = new URL(window.location);
+  if (query) {
+    url.searchParams.set('q', query);
+  } else {
+    url.searchParams.delete('q');
+  }
+  window.history.pushState({}, '', url);
+
+  // Trigger the filtering logic
+  filterAndSortProducts();
+}

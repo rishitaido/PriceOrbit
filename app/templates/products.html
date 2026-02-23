@@ -138,12 +138,11 @@
           </label>
           <select id="category-filter">
             <option value="all">All Categories</option>
-            <option value="Dairy">Dairy</option>
-            <option value="Baby Products">Baby Products</option>
-            <option value="Pantry">Pantry</option>
-            <option value="Produce">Produce</option>
-            <option value="Meat">Meat</option>
-            <option value="Frozen">Frozen</option>
+            <option value="Dairy & Eggs">Dairy & Eggs</option>
+            <option value="Pantry Staples">Pantry Staples</option>
+            <option value="Fresh Produce">Fresh Produce</option>
+            <option value="Meat & Seafood">Meat & Seafood</option>
+            <option value="Frozen Foods">Frozen Foods</option>
           </select>
         </div>
 
@@ -171,8 +170,20 @@
             <option value="name-asc">Name (A-Z)</option>
             <option value="name-desc">Name (Z-A)</option>
           </select>
+          <button id="clear-filter" class="btn-api-docs" style="display: none; padding: 5px 10px; margin-left: 10px; font-size: 0.8rem;">
+            <i class="fa-solid fa-xmark"></i> Clear
+          </button>
         </div>
+
+        
+        
       </div>
+
+      <div class="content-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="category-count" class="status-badge low-risk" style="font-size: 0.9rem;">0 Products</span>
+      </div>
+      
 
       <!-- Loading State -->
       <div id="loading" class="loading-state">

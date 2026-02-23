@@ -429,3 +429,4 @@ function showError(message) {
   document.getElementById('detail-error-text').textContent = message || 'Product not found';
   document.getElementById('product-detail').style.display = 'none';
 } 
+
