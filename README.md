@@ -14,9 +14,17 @@ Capstone/
 │   ├── core/              # Core configuration and settings
 │   ├── db/                # Database connection and session management
 │   ├── models/            # SQLAlchemy database models
-│   ├── routers/           # API route handlers
-│   ├── schemas/           # Pydantic schemas for request/response validation
+│   │   └── product_model.py
+│   ├── routers/           # API and page route handlers
+│   │   ├── main.py
+│   │   └── product_routes.py
+│   ├── schemas/           # Pydantic request/response schemas
+│   │   └── product_schemas.py
 │   ├── services/          # Business logic and external API integrations
+│   │   ├── product_service.py
+│   │   ├── health_score_service.py
+│   │   ├── price_history_service.py
+│   │   └── kroger_service.py
 │   ├── static/            # Static files (CSS, JS, images)
 │   └── templates/         # Jinja2 HTML templates
 ├── migrations/            # Alembic database migration files
@@ -24,7 +32,9 @@ Capstone/
 │   ├── env.py            # Alembic environment configuration
 │   ├── script.py.mako    # Template for generating new migrations
 │   ├── init_db.py        # Database initialization script
-│   └── seed_products.py  # Product seeding script
+│   ├── seed_products.py  # Product seeding script
+│   ├── map_kroger_products.py
+│   └── fetch_initial_prices.py
 ├── data/                  # Data files and datasets
 ├── docs/                  # Documentation
 ├── scripts/               # Utility scripts
@@ -204,8 +214,42 @@ GET /health
 ```
 Returns API status and version information.
 
-### Main Routes
-See `app/routers/main.py` for available endpoints.
+### Page Routes (`app/routers/main.py`)
+```
+GET /
+GET /products.html
+GET /about.html
+GET /product/{product_id}
+GET /products/{product_id}
+```
+
+### Product API Routes (`/api/products`, `app/routers/product_routes.py`)
+```
+GET    /api/products
+GET    /api/products/{product_id}
+POST   /api/products
+PATCH  /api/products/{product_id}
+DELETE /api/products/{product_id}?confirm=true
+GET    /api/products/category/{category}
+GET    /api/products/search?q={query}&category={optional}
+GET    /api/products/{product_id}/price-history
+POST   /api/products/{product_id}/add-price-point
+POST   /api/products/{product_id}/recalculate-health-score
+POST   /api/products/{product_id}/update-price
+POST   /api/products/update-all-prices?limit=50
+```
+
+### Error Response Format
+Domain exceptions are translated to structured JSON:
+```json
+{
+  "detail": {
+    "code": "VALIDATION_ERROR",
+    "message": "Human-readable message",
+    "context": {}
+  }
+}
+```
 
 ## 🧪 Testing
 
@@ -254,4 +298,3 @@ All configuration is managed through `app/core/config.py` using Pydantic Setting
 3. Write/update tests
 4. Generate migrations if needed
 5. Submit a pull request
-

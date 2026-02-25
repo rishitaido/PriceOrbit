@@ -1,15 +1,12 @@
 import asyncio
 import logging
 import time
+from difflib import SequenceMatcher
 from typing import Any, Literal, Optional
 
 import httpx
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(name)s – %(message)s",
-)
 
 KROGER_TOKEN_URL = "https://api.kroger.com/v1/connect/oauth2/token"
 KROGER_BASE_URL = "https://api.kroger.com/v1"
@@ -107,17 +104,26 @@ class KrogerService:
 
     async def _fetch_token(self) -> None:
         logger.debug("Fetching new OAuth token from Kroger...")
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                KROGER_TOKEN_URL,
-                data={
-                    "grant_type": "client_credentials",
-                    "scope": KROGER_SCOPES,
-                },
-                auth=(self.client_id, self.client_secret),
-                headers={"Content-Type": "application/x-www-form-urlencoded",
-                         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"},
-            )
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    KROGER_TOKEN_URL,
+                    data={
+                        "grant_type": "client_credentials",
+                        "scope": KROGER_SCOPES,
+                    },
+                    auth=(self.client_id, self.client_secret),
+                    headers={
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "User-Agent": (
+                            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                            "AppleWebKit/537.36 (KHTML, like Gecko) "
+                            "Chrome/121.0.0.0 Safari/537.36"
+                        ),
+                    },
+                )
+        except httpx.RequestError as exc:
+            raise KrogerAPIError(f"Token request network error: {exc}") from exc
 
         if response.status_code != 200:
             raise KrogerAPIError(
@@ -235,6 +241,90 @@ class KrogerService:
         logger.info("search_products('%s') -> %d results", query or brand, len(products))
         return products
 
+    @staticmethod
+    def _extract_image_url(product_payload: dict) -> Optional[str]:
+        images = product_payload.get("images") or []
+        if not images:
+            return None
+
+        first_image = images[0]
+        sizes = first_image.get("sizes") or []
+        if not sizes:
+            return None
+
+        return sizes[-1].get("url")
+
+    @staticmethod
+    def _confidence(search_term: str, description: str) -> float:
+        return round(SequenceMatcher(None, search_term.lower(), description.lower()).ratio() * 100, 1)
+
+    async def find_kroger_product(
+        self,
+        product_name: str,
+        *,
+        min_confidence: float = 70.0,
+        limit: int = 5,
+    ) -> Optional[dict]:
+        """
+        Search Kroger products and return the best match with confidence score.
+        """
+        query = product_name.strip()
+        if not query:
+            raise ValueError("Product name is required.")
+
+        candidates = await self.search_products(query, limit=limit)
+        if not candidates:
+            logger.info("No Kroger matches found for '%s'", product_name)
+            return None
+
+        scored: list[tuple[float, dict]] = []
+        for product in candidates:
+            description = product.get("description") or ""
+            if not description:
+                continue
+            scored.append((self._confidence(query, description), product))
+
+        if not scored:
+            return None
+
+        scored.sort(key=lambda item: item[0], reverse=True)
+        best_score, best_product = scored[0]
+        if best_score < min_confidence:
+            logger.info(
+                "No Kroger match above confidence threshold for '%s'. Best=%.1f",
+                product_name,
+                best_score,
+            )
+            return None
+
+        second_best = scored[1][0] if len(scored) > 1 else 0.0
+        ambiguous = second_best >= min_confidence and (best_score - second_best) <= 5.0
+        suggestions = [
+            {
+                "product_id": item.get("productId"),
+                "description": item.get("description"),
+                "confidence": score,
+            }
+            for score, item in scored[:3]
+        ]
+
+        match = {
+            "product_id": best_product.get("productId"),
+            "description": best_product.get("description"),
+            "confidence": best_score,
+            "ambiguous": ambiguous,
+            "image_url": self._extract_image_url(best_product),
+            "suggestions": suggestions,
+        }
+        logger.info(
+            "Kroger best match for '%s': id=%s confidence=%.1f ambiguous=%s",
+            product_name,
+            match["product_id"],
+            best_score,
+            ambiguous,
+        )
+        return match
+
     async def get_product_by_id(self, product_id: str) -> dict:
         if len(product_id) != 13:
             raise ValueError(f"productId must be exactly 13 digits (got {len(product_id)}).")
@@ -252,6 +342,10 @@ class KrogerService:
 
         logger.info("get_product_by_id('%s') -> %s", product_id, product.get("description"))
         return product
+
+    async def get_product_details(self, kroger_product_id: str) -> dict:
+        """Return full Kroger payload for a specific Kroger product ID."""
+        return await self.get_product_by_id(kroger_product_id)
 
     async def get_product_price(self, product_name: str) -> dict:
         cache_key = f"price:{product_name}:{self.location_id}"

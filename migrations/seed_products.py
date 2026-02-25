@@ -11,7 +11,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.models.product import Product
+from app.models.product_model import Product
 
 # Resolve project root directory
 BASE_DIR = Path(__file__).resolve().parent.parent

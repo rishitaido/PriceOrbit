@@ -1,26 +1,36 @@
+import logging
+
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from app.core.config import settings 
+from app.core.exceptions import (
+    DuplicateError,
+    ExternalAPIError,
+    NotFoundError,
+    PriceOrbitError,
+    ValidationError,
+)
 from app.routers.main import router as main_router 
-from app.routers.products import router as products_router
+from app.routers.product_routes import router as product_routes_router
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="app/templates")
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- startup ---
-    print(f"{settings.APP_NAME} v{settings.VERSION}")
-    print(f"Database: {settings.MYSQL_DATABASE}")
-    print(f"Debug Mode: {settings.DEBUG}")
-    print(f"API Docs: http://localhost:{settings.PORT}/docs")
+    logger.info("%s v%s", settings.APP_NAME, settings.VERSION)
+    logger.info("Database: %s", settings.MYSQL_DATABASE)
+    logger.info("Debug Mode: %s", settings.DEBUG)
+    logger.info("API Docs: http://localhost:%s/docs", settings.PORT)
     yield  # app runs here
 
     # --- shutdown ---
-    print("\n👋 Shutting down PriceOrbit API...")
+    logger.info("Shutting down PriceOrbit API...")
 
 
 # Create FastAPI application instance
@@ -33,6 +43,44 @@ app = FastAPI(
     lifespan=lifespan
     
 )
+
+
+def _error_response(status_code: int, code: str, exc: PriceOrbitError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "detail": {
+                "code": code,
+                "message": exc.message,
+                "context": exc.details,
+            }
+        },
+    )
+
+
+@app.exception_handler(NotFoundError)
+async def handle_not_found(_: Request, exc: NotFoundError):
+    return _error_response(404, "NOT_FOUND", exc)
+
+
+@app.exception_handler(DuplicateError)
+async def handle_duplicate(_: Request, exc: DuplicateError):
+    return _error_response(409, "DUPLICATE", exc)
+
+
+@app.exception_handler(ValidationError)
+async def handle_validation(_: Request, exc: ValidationError):
+    return _error_response(422, "VALIDATION_ERROR", exc)
+
+
+@app.exception_handler(ExternalAPIError)
+async def handle_external(_: Request, exc: ExternalAPIError):
+    return _error_response(502, "EXTERNAL_API_ERROR", exc)
+
+
+@app.exception_handler(PriceOrbitError)
+async def handle_domain_error(_: Request, exc: PriceOrbitError):
+    return _error_response(400, "DOMAIN_ERROR", exc)
 
 # Configure CORS middleware
 app.add_middleware(
@@ -48,7 +96,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 #Include Routers 
 app.include_router(main_router, tags=["main"])
-app.include_router(products_router, prefix= "/api/products", tags = ["products"])
+app.include_router(product_routes_router, prefix= "/api/products", tags = ["products"])
 
 @app.get("/health", tags = ["health"])
 def health_check(): 
@@ -63,7 +111,7 @@ def health_check():
         "debug" : settings.DEBUG
     }
 
-@app.get("/product/{product_id}", response_class=HTMLResponse)
+@app.get("/products/{product_id}", response_class=HTMLResponse)
 async def product_detail_page(request: Request,product_id: int):
     '''
     Renders the product detail page for a given product ID.

@@ -2,8 +2,8 @@
 Pydantic schemas for Product model
 Used for API validation and response serialization
 """
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import Optional, List, Dict, Any
 from decimal import Decimal
 from datetime import datetime
 
@@ -75,6 +75,12 @@ class ProductResponse(ProductBase):
     
     model_config = ConfigDict(from_attributes=True)  # Allows conversion from SQLAlchemy models
 
+    @field_validator("price_history", mode="before")
+    @classmethod
+    def _coerce_price_history(cls, value: Any) -> List[dict]:
+        # Legacy rows may store NULL; API contract always returns a list.
+        return value or []
+
 
 class ProductListResponse(BaseModel):
     """
@@ -111,6 +117,40 @@ class PricePointCreate(BaseModel):
         description="ISO-8601 date (YYYY-MM-DD). Defaults to today.",
         examples=["2025-03-15"],
     )
+
+
+class PriceHistoryResponse(BaseModel):
+    """Response schema for product price history endpoint."""
+
+    product_id: int
+    product_name: str
+    current_price: Optional[float]
+    history: List[PriceHistoryEntry] = Field(default_factory=list)
+    statistics: Dict[str, Any]
+
+
+class PriceUpdateResponse(BaseModel):
+    """Response schema for single-product automated price updates."""
+
+    product_id: int
+    product_name: str
+    old_price: Optional[Decimal]
+    new_price: Decimal
+    price_change: Optional[float]
+    old_health_score: Decimal
+    new_health_score: Decimal
+    updated_at: datetime
+    source: str = "kroger_api"
+
+
+class BatchPriceUpdateResponse(BaseModel):
+    """Response schema for batch automated price updates."""
+
+    processed: int
+    updated: int
+    failed: int
+    results: List[PriceUpdateResponse] = Field(default_factory=list)
+    errors: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class HealthScoreColor(BaseModel):

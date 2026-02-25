@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from app.db.session import SessionLocal
 from app.services.product_service import ProductService
-from app.schemas.product import ProductCreate, ProductUpdate
+from app.schemas.product_schemas import ProductCreate, ProductUpdate
 from decimal import Decimal
 
 

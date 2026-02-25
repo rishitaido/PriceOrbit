@@ -1,433 +1,382 @@
 // Product Detail Page JavaScript
-// Handles product detail display, price history, and Chart.js visualization
 
-const API_BASE = '/api/products';
+const API_BASE = "/api/products";
 let priceChart = null;
+let activeProductId = null;
 
-// Get product ID from URL
 function getProductId() {
-  const path = window.location.pathname;
-  const match = path.match(/\/product\/(\d+)/);
+  const match = window.location.pathname.match(/\/products?\/(\d+)/);
   return match ? match[1] : null;
 }
 
-// Initialize page when DOM loads
-document.addEventListener('DOMContentLoaded', () => {
-  const productId = getProductId();
-  
-  if (productId) {
-    loadProductDetail(productId);
-  } else {
-    showError('Invalid product ID');
+document.addEventListener("DOMContentLoaded", async () => {
+  activeProductId = getProductId();
+  bindActions();
+
+  if (!activeProductId) {
+    showError("Invalid product ID");
+    return;
   }
+
+  await loadProductDetail(activeProductId, { showLoading: true });
 });
 
-// Load product details from API
-async function loadProductDetail(productId) {
-  showLoading();
-  
-  try {
-    // Fetch product details
-    const response = await fetch(`${API_BASE}/${productId}`);
-    
-    if (!response.ok) {
-      throw new Error('Product not found');
-    }
-    
-    const product = await response.json();
-    
-    // Display product details
-    displayProductInfo(product);
-    
-    // Try to fetch price history
+function bindActions() {
+  const updateButton = document.getElementById("update-price-btn");
+  if (!updateButton) return;
+
+  updateButton.addEventListener("click", async () => {
+    if (!activeProductId) return;
+
+    const statusEl = document.getElementById("update-price-status");
+    updateButton.disabled = true;
+    if (statusEl) statusEl.textContent = "Updating...";
+
     try {
-      const historyResponse = await fetch(`${API_BASE}/${productId}/price-history`);
-      
-      if (historyResponse.ok) {
-        const historyData = await historyResponse.json();
-        displayPriceHistory(historyData);
-      } else {
-        // Generate sample data if no history available
-        generateSamplePriceHistory(product);
+      const response = await fetch(`${API_BASE}/${activeProductId}/update-price`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        const message = errorBody?.detail?.message || errorBody?.detail || "Price update failed";
+        throw new Error(message);
       }
+
+      const payload = await response.json();
+      if (statusEl) {
+        statusEl.textContent = `Updated to $${Number(payload.new_price).toFixed(2)}`;
+      }
+
+      await loadProductDetail(activeProductId, { showLoading: false });
     } catch (error) {
-      console.log('Price history endpoint not available, using sample data');
-      generateSamplePriceHistory(product);
+      if (statusEl) statusEl.textContent = String(error.message || "Update failed");
+    } finally {
+      updateButton.disabled = false;
     }
-    
+  });
+}
+
+async function loadProductDetail(productId, { showLoading: shouldShowLoading }) {
+  if (shouldShowLoading) showLoading();
+
+  try {
+    const productResponse = await fetch(`${API_BASE}/${productId}`);
+    if (!productResponse.ok) throw new Error("Product not found");
+
+    const product = await productResponse.json();
+
+    let historyPayload = {
+      history: [],
+      current_price: product.current_price,
+      statistics: {
+        min: null,
+        max: null,
+        average: null,
+        volatility: null,
+        change_7d: null,
+        change_30d: null,
+        trend: "insufficient_data",
+      },
+    };
+
+    const historyResponse = await fetch(`${API_BASE}/${productId}/price-history`);
+    if (historyResponse.ok) {
+      historyPayload = await historyResponse.json();
+    }
+
+    displayProductInfo(product, historyPayload.statistics);
+    displayPriceHistory(historyPayload);
     hideLoading();
-    
   } catch (error) {
-    console.error('Error loading product:', error);
+    console.error("Error loading product:", error);
     showError(error.message);
   }
 }
 
-// Display product information
-function displayProductInfo(product) {
-  // Product name and category
-  document.getElementById('product-name').textContent = product.name;
-  
-  const categoryText = product.category || 'Uncategorized';
-  document.getElementById('product-category').textContent = categoryText;
-  
-  // Health score
-  const healthScore = product.health_score || 50;
+function displayProductInfo(product, stats = null) {
+  document.getElementById("product-name").textContent = product.name;
+  document.getElementById("product-category").textContent = product.category || "Uncategorized";
+
+  const healthScore = Number(product.health_score || 50);
   updateHealthScore(healthScore);
-  
-  // Current price
-  const price = product.current_price || 0;
-  document.getElementById('current-price').textContent = `$${parseFloat(price).toFixed(2)}`;
-  
-  // Sample price changes (would come from API in production)
-  const change7d = (Math.random() * 10 - 5).toFixed(1);
-  const change30d = (Math.random() * 15 - 7).toFixed(1);
-  
-  displayPriceChange('change-7d', change7d);
-  displayPriceChange('change-30d', change30d);
-  
-  // Supply chain information
-  const importDep = product.import_dependency || 'Unknown';
-  const importBadge = document.getElementById('import-dependency');
+
+  const price = product.current_price;
+  document.getElementById("current-price").textContent =
+    price !== null && price !== undefined ? `$${Number(price).toFixed(2)}` : "N/A";
+
+  displayPriceChange("change-7d", stats?.change_7d);
+  displayPriceChange("change-30d", stats?.change_30d);
+
+  const importDep = product.import_dependency || "Unknown";
+  const importBadge = document.getElementById("import-dependency");
   importBadge.textContent = importDep;
   importBadge.className = `info-value badge-pill import-${importDep.toLowerCase()}`;
-  
-  document.getElementById('tariff-rate').textContent = `${product.tariff_rate || 0}%`;
-  document.getElementById('origin-country').textContent = product.origin_country || 'Not specified';
-  document.getElementById('hts-code').textContent = product.hts_code || 'Not specified';
-  document.getElementById('retailer').textContent = product.retailer || 'Kroger';
-  
-  // Health score breakdown
-  updateHealthScoreBreakdown(product);
-  
-  // Description
-  document.getElementById('product-description').textContent = 
-    product.description || 'No description available for this product.';
-  
-  // Last updated
-  const lastUpdated = product.last_price_check 
-    ? formatDate(product.last_price_check)
-    : 'Never';
-  document.getElementById('last-updated').textContent = lastUpdated;
-  
-  // Show the detail section
-  document.getElementById('product-detail').style.display = 'block';
+
+  document.getElementById("tariff-rate").textContent = `${product.tariff_rate || 0}%`;
+  document.getElementById("origin-country").textContent = product.origin_country || "Not specified";
+  document.getElementById("hts-code").textContent = product.hts_code || "Not specified";
+  document.getElementById("retailer").textContent = product.retailer || "Kroger";
+
+  updateHealthScoreBreakdown(product, stats);
+
+  document.getElementById("product-description").textContent =
+    product.description || "No description available for this product.";
+
+  const lastUpdated = product.last_price_check ? formatDate(product.last_price_check) : "Never";
+  document.getElementById("last-updated").textContent = lastUpdated;
+
+  document.getElementById("product-detail").style.display = "block";
 }
 
-// Update health score circle
 function updateHealthScore(score) {
-  const scoreText = document.getElementById('score-text');
-  const scoreFill = document.getElementById('score-fill');
-  const statusBadge = document.getElementById('health-status');
-  
+  const scoreText = document.getElementById("score-text");
+  const scoreFill = document.getElementById("score-fill");
+  const statusBadge = document.getElementById("health-status");
+
   scoreText.textContent = Math.round(score);
-  
-  // Calculate stroke-dasharray for circle (circumference = 2 * π * r = 251.2)
-  const dashArray = `${(score / 100) * 251.2} 251.2`;
-  scoreFill.style.strokeDasharray = dashArray;
-  
-  // Determine status and color
-  let statusText, statusClass, strokeColor;
-  
+  scoreFill.style.strokeDasharray = `${(score / 100) * 251.2} 251.2`;
+
   if (score >= 70) {
-    statusText = 'Low Risk';
-    statusClass = 'low-risk';
-    strokeColor = '#16a34a';
+    statusBadge.textContent = "Low Risk";
+    statusBadge.className = "status-badge low-risk";
+    scoreFill.style.stroke = "#16a34a";
   } else if (score >= 40) {
-    statusText = 'Medium Risk';
-    statusClass = 'medium-risk';
-    strokeColor = '#eab308';
+    statusBadge.textContent = "Medium Risk";
+    statusBadge.className = "status-badge medium-risk";
+    scoreFill.style.stroke = "#eab308";
   } else {
-    statusText = 'High Risk';
-    statusClass = 'high-risk';
-    strokeColor = '#dc2626';
+    statusBadge.textContent = "High Risk";
+    statusBadge.className = "status-badge high-risk";
+    scoreFill.style.stroke = "#dc2626";
   }
-  
-  statusBadge.textContent = statusText;
-  statusBadge.className = `status-badge ${statusClass}`;
-  scoreFill.style.stroke = strokeColor;
 }
 
-// Display price change
 function displayPriceChange(elementId, change) {
   const element = document.getElementById(elementId);
-  const value = parseFloat(change);
-  const arrow = value >= 0 ? '↑' : '↓';
-  const className = value >= 0 ? 'up' : 'down';
-  
-  element.innerHTML = `<span class="price-badge ${className}">${arrow} ${Math.abs(value)}%</span>`;
-}
-
-// Update health score breakdown bars
-function updateHealthScoreBreakdown(product) {
-  // Tariff impact (inverse - higher tariff = lower score)
-  const tariffScore = Math.max(0, 100 - (product.tariff_rate * 3.33));
-  updateBreakdownBar('tariff-bar', tariffScore);
-  
-  // Volatility (sample - would be calculated from price history)
-  const volatilityScore = 75; // Placeholder
-  updateBreakdownBar('volatility-bar', volatilityScore);
-  
-  // Import dependency
-  const dependencyMap = { 'Low': 100, 'Medium': 50, 'High': 0, 'Unknown': 50 };
-  const dependencyScore = dependencyMap[product.import_dependency] || 50;
-  updateBreakdownBar('dependency-bar', dependencyScore);
-}
-
-// Update individual breakdown bar
-function updateBreakdownBar(barId, score) {
-  const bar = document.getElementById(barId);
-  bar.style.width = `${score}%`;
-  
-  // Color based on score
-  if (score >= 70) {
-    bar.style.backgroundColor = '#16a34a';
-  } else if (score >= 40) {
-    bar.style.backgroundColor = '#eab308';
-  } else {
-    bar.style.backgroundColor = '#dc2626';
-  }
-}
-
-// Display price history with Chart.js
-function displayPriceHistory(historyData) {
-  const history = historyData.history || [];
-  
-  if (history.length === 0) {
-    document.getElementById('chart-empty').style.display = 'flex';
+  if (change === null || change === undefined || Number.isNaN(Number(change))) {
+    element.textContent = "--";
     return;
   }
-  
-  const labels = history.map(h => formatChartDate(h.date));
-  const prices = history.map(h => parseFloat(h.price));
-  
-  createPriceChart(labels.reverse(), prices.reverse());
-  
-  const stats = historyData.statistics || calculateStatistics(prices);
-  
-  // pull current_price from top level if stats.current is missing
-  if (!stats.current) {
-    stats.current = historyData.current_price;
-  }
-  
-  displayStatistics(stats);
-  displayRecentUpdates(history.slice(-10).reverse());
+
+  const value = Number(change);
+  const arrow = value >= 0 ? "↑" : "↓";
+  const className = value >= 0 ? "up" : "down";
+  element.innerHTML = `<span class="price-badge ${className}">${arrow} ${Math.abs(value).toFixed(1)}%</span>`;
 }
 
-// Generate sample price history (for when API doesn't have it yet)
-function generateSamplePriceHistory(product) {
-  const currentPrice = parseFloat(product.current_price) || 2.99;
-  const history = [];
-  const labels = [];
-  
-  // Generate 30 days of sample data
-  for (let i = 30; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    
-    // Random price variation ±8%
-    const variation = (Math.random() - 0.5) * 0.16;
-    const price = currentPrice * (1 + variation);
-    
-    labels.push(formatChartDate(date.toISOString()));
-    history.push({
-      date: date.toISOString(),
-      price: price.toFixed(2)
-    });
+function updateHealthScoreBreakdown(product, stats = null) {
+  const tariffRate = Number(product.tariff_rate || 0);
+  const tariffPenalty = Math.min((tariffRate / 25) * 40, 40);
+
+  const dependencyMap = { Low: 0, Medium: 15, High: 30, Unknown: 10 };
+  const dependencyPenalty = dependencyMap[product.import_dependency] ?? 10;
+
+  const volatilityPercent = Number(stats?.volatility);
+  const volatilityPenalty = Number.isFinite(volatilityPercent)
+    ? Math.min((volatilityPercent / 100) * 30, 30)
+    : 0;
+
+  const tariffScore = Math.max(0, 100 - (tariffPenalty / 40) * 100);
+  const dependencyScore = Math.max(0, 100 - (dependencyPenalty / 30) * 100);
+  const volatilityScore = Math.max(0, 100 - (volatilityPenalty / 30) * 100);
+
+  updateBreakdownBar("tariff-bar", tariffScore);
+  updateBreakdownBar("dependency-bar", dependencyScore);
+  updateBreakdownBar("volatility-bar", volatilityScore);
+}
+
+function updateBreakdownBar(barId, score) {
+  const bar = document.getElementById(barId);
+  if (!bar) return;
+
+  bar.style.width = `${Math.max(0, Math.min(100, score))}%`;
+
+  if (score >= 70) bar.style.backgroundColor = "#16a34a";
+  else if (score >= 40) bar.style.backgroundColor = "#eab308";
+  else bar.style.backgroundColor = "#dc2626";
+}
+
+function displayPriceHistory(historyData) {
+  const history = Array.isArray(historyData.history) ? historyData.history : [];
+  const stats = historyData.statistics || {};
+
+  if (history.length === 0) {
+    document.getElementById("chart-empty").style.display = "flex";
+    displayStatistics(stats, historyData.current_price);
+    displayRecentUpdates([]);
+    return;
   }
-  
-  const prices = history.map(h => parseFloat(h.price));
-  
-  // Create chart
+
+  document.getElementById("chart-empty").style.display = "none";
+
+  // API history is newest-first. Reverse for chart (oldest-first).
+  const oldestFirst = [...history].reverse();
+  const labels = oldestFirst.map((h) => formatChartDate(h.date));
+  const prices = oldestFirst.map((h) => Number(h.price));
   createPriceChart(labels, prices);
-  
-  // Calculate and display statistics
-  const stats = calculateStatistics(prices);
-  stats.current = currentPrice;
-  displayStatistics(stats);
-  
-  // Display recent updates
-  displayRecentUpdates(history.slice(-10).reverse());
+
+  displayStatistics(stats, historyData.current_price);
+  displayRecentUpdates(history.slice(0, 10));
 }
 
-// Create Chart.js price chart
 function createPriceChart(labels, prices) {
-  const ctx = document.getElementById('price-chart').getContext('2d');
-  
-  if (priceChart) {
-    priceChart.destroy();
-  }
-  
+  const canvas = document.getElementById("price-chart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  if (priceChart) priceChart.destroy();
+
   priceChart = new Chart(ctx, {
-    type: 'line',
+    type: "line",
     data: {
-      labels: labels,
-      datasets: [{
-        label: 'Price ($)',
-        data: prices,
-        borderColor: '#111',
-        backgroundColor: 'rgba(17, 17, 17, 0.05)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        pointBackgroundColor: '#111',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2
-      }]
+      labels,
+      datasets: [
+        {
+          label: "Price ($)",
+          data: prices,
+          borderColor: "#111",
+          backgroundColor: "rgba(17, 17, 17, 0.05)",
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: "#111",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
+        },
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          backgroundColor: 'rgba(17, 17, 17, 0.9)',
-          padding: 12,
-          titleFont: { size: 14, weight: 600 },
-          bodyFont: { size: 13 },
-          cornerRadius: 8,
-          displayColors: false,
-          callbacks: {
-            label: function(context) {
-              return `Price: $${context.parsed.y.toFixed(2)}`;
-            }
-          }
-        }
+        legend: { display: false },
       },
       scales: {
         y: {
           beginAtZero: false,
           ticks: {
-            callback: function(value) {
-              return '$' + value.toFixed(2);
+            callback(value) {
+              return `$${Number(value).toFixed(2)}`;
             },
             font: { size: 12 },
-            color: '#666'
+            color: "#666",
           },
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)',
-            drawBorder: false
-          }
+          grid: { color: "rgba(0, 0, 0, 0.05)", drawBorder: false },
         },
         x: {
-          grid: {
-            display: false
-          },
+          grid: { display: false },
           ticks: {
             maxRotation: 45,
             minRotation: 45,
             font: { size: 11 },
-            color: '#666'
-          }
-        }
-      }
-    }
+            color: "#666",
+          },
+        },
+      },
+    },
   });
 }
 
-// Calculate statistics from price array
-function calculateStatistics(prices) {
-  const current = prices[prices.length - 1];
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const average = prices.reduce((a, b) => a + b, 0) / prices.length;
-  const volatility = calculateVolatility(prices);
-  
-  return { current, min, max, average, volatility };
+function displayStatistics(stats, fallbackCurrentPrice = null) {
+  const current = stats.current ?? fallbackCurrentPrice;
+  const average = stats.average;
+  const min = stats.min;
+  const max = stats.max;
+  const volatility = stats.volatility;
+
+  document.getElementById("stat-current").textContent = formatCurrency(current);
+  document.getElementById("stat-average").textContent = formatCurrency(average);
+  document.getElementById("stat-min").textContent = formatCurrency(min);
+  document.getElementById("stat-max").textContent = formatCurrency(max);
+  document.getElementById("stat-volatility").textContent =
+    volatility === null || volatility === undefined || Number.isNaN(Number(volatility))
+      ? "N/A"
+      : `${Number(volatility).toFixed(1)}%`;
 }
 
-// Calculate price volatility (coefficient of variation)
-function calculateVolatility(prices) {
-  const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
-  const variance = prices.reduce((sum, price) => 
-    sum + Math.pow(price - mean, 2), 0) / prices.length;
-  const stdDev = Math.sqrt(variance);
-  return (stdDev / mean) * 100;
-}
-
-// Display price statistics
-function displayStatistics(stats) {
-  document.getElementById('stat-current').textContent = `$${stats.current.toFixed(2)}`;
-  document.getElementById('stat-average').textContent = `$${stats.average.toFixed(2)}`;
-  document.getElementById('stat-min').textContent = `$${stats.min.toFixed(2)}`;
-  document.getElementById('stat-max').textContent = `$${stats.max.toFixed(2)}`;
-  document.getElementById('stat-volatility').textContent = `${stats.volatility.toFixed(1)}%`;
-}
-
-// Display recent price updates
 function displayRecentUpdates(history) {
-  const container = document.getElementById('price-history-list');
-  
-  if (history.length === 0) {
+  const container = document.getElementById("price-history-list");
+  if (!container) return;
+
+  if (!history.length) {
     container.innerHTML = '<p class="text-muted">No price history available</p>';
     return;
   }
-  
-  container.innerHTML = history.map((item, index) => {
-    const change = index < history.length - 1 
-      ? ((parseFloat(item.price) - parseFloat(history[index + 1].price)) / parseFloat(history[index + 1].price) * 100)
-      : 0;
-    
-    const changeHtml = change !== 0 
-      ? `<span class="price-badge ${change >= 0 ? 'up' : 'down'}">${change >= 0 ? '↑' : '↓'} ${Math.abs(change).toFixed(1)}%</span>`
-      : '';
-    
-    return `
-      <div class="history-item">
-        <span class="history-date">${formatDate(item.date)}</span>
-        <span class="history-price">
-          $${parseFloat(item.price).toFixed(2)}
-          ${changeHtml}
-        </span>
-      </div>
-    `;
-  }).join('');
+
+  container.innerHTML = history
+    .map((item, index) => {
+      const current = Number(item.price);
+      const previous = index < history.length - 1 ? Number(history[index + 1].price) : null;
+
+      let changeHtml = "";
+      if (previous !== null && previous !== 0) {
+        const change = ((current - previous) / previous) * 100;
+        changeHtml = `<span class="price-badge ${change >= 0 ? "up" : "down"}">`
+          + `${change >= 0 ? "↑" : "↓"} ${Math.abs(change).toFixed(1)}%</span>`;
+      }
+
+      return `
+        <div class="history-item">
+          <span class="history-date">${formatDate(item.date)}</span>
+          <span class="history-price">
+            ${formatCurrency(item.price)}
+            ${changeHtml}
+          </span>
+        </div>
+      `;
+    })
+    .join("");
 }
 
-// Helper functions
+function formatCurrency(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "N/A";
+  return `$${Number(value).toFixed(2)}`;
+}
+
 function formatDate(dateString) {
-  const date = new Date(dateString);
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) return "Unknown date";
+
   const now = new Date();
-  const diffTime = Math.abs(now - date);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
+  const diffMs = now.getTime() - parsed.getTime();
+  if (diffMs < 0) {
+    return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays} days ago`;
-  
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
+
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 }
 
 function formatChartDate(dateString) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric' 
-  });
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) return "N/A";
+  return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function showLoading() {
-  document.getElementById('detail-loading').style.display = 'flex';
-  document.getElementById('detail-error').style.display = 'none';
-  document.getElementById('product-detail').style.display = 'none';
+  document.getElementById("detail-loading").style.display = "flex";
+  document.getElementById("detail-error").style.display = "none";
+  document.getElementById("product-detail").style.display = "none";
 }
 
 function hideLoading() {
-  document.getElementById('detail-loading').style.display = 'none';
+  document.getElementById("detail-loading").style.display = "none";
 }
 
 function showError(message) {
-  document.getElementById('detail-loading').style.display = 'none';
-  document.getElementById('detail-error').style.display = 'flex';
-  document.getElementById('detail-error-text').textContent = message || 'Product not found';
-  document.getElementById('product-detail').style.display = 'none';
-} 
-
+  document.getElementById("detail-loading").style.display = "none";
+  document.getElementById("detail-error").style.display = "flex";
+  document.getElementById("detail-error-text").textContent = message || "Product not found";
+  document.getElementById("product-detail").style.display = "none";
+}
