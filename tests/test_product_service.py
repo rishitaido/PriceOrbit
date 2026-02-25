@@ -3,7 +3,7 @@ import os
 from pydantic import ValidationError as PydanticValidationError
 
 from app.core.exceptions import NotFoundError
-from app.schemas.product import ProductCreate, ProductUpdate
+from app.schemas.product_schemas import ProductCreate, ProductUpdate
 from app.services.product_service import ProductService
 
 

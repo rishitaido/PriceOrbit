@@ -11,7 +11,7 @@ load_dotenv(dotenv_path=base_dir / ".env")
 
 from app.core.config import settings
 from app.db.session import SessionLocal
-from app.models.product import Product
+from app.models.product_model import Product
 from app.services.kroger_service import KrogerService
 
 def get_confidence(a, b):

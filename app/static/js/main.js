@@ -15,7 +15,7 @@ const PriceOrbit = {
   API_BASE: '/api',
   
   // Application version
-  VERSION: '1.0.0-sprint1'
+  VERSION: '1.0.0-sprint2'
 };
 
 // ============================================
@@ -240,4 +240,3 @@ window.PriceOrbit = PriceOrbit;
 window.Logger = Logger;
 window.DOM = DOM;
 window.Utils = Utils;
-

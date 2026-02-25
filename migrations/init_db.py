@@ -22,7 +22,7 @@ from app.db.session import engine
 from app.core.config import settings
 
 # explicit import so `init_database` can reference Product
-from app.models.product import Product
+from app.models.product_model import Product
 
 
 def init_database():

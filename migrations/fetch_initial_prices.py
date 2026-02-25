@@ -26,7 +26,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.config import settings
 from app.db.session import SessionLocal
-from app.models.product import Product
+from app.models.product_model import Product
 from app.services.kroger_service import KrogerService
 
 logging.basicConfig(
