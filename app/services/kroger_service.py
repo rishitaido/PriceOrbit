@@ -6,6 +6,8 @@ from typing import Any, Literal, Optional
 
 import httpx
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 KROGER_TOKEN_URL = "https://api.kroger.com/v1/connect/oauth2/token"
@@ -82,14 +84,20 @@ class KrogerService:
         location_id: str = "01400943",
         timeout: float = 10.0,
         use_cache: bool = True,
+        base_url: Optional[str] = None,
+        token_url: Optional[str] = None,
+        scope: str = KROGER_SCOPES,
     ) -> None:
         self.client_id = client_id
         self.client_secret = client_secret
         self.location_id = location_id
         self.timeout = timeout
         self.use_cache = use_cache
+        self.base_url = base_url or settings.KROGER_BASE_URL or KROGER_BASE_URL
+        self.token_url = token_url or settings.KROGER_AUTH_URL or KROGER_TOKEN_URL
+        self.scope = scope
         self._http = httpx.AsyncClient(
-            base_url=KROGER_BASE_URL,
+            base_url=self.base_url,
             timeout=self.timeout,
         )
 
@@ -107,10 +115,10 @@ class KrogerService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
-                    KROGER_TOKEN_URL,
+                    self.token_url,
                     data={
                         "grant_type": "client_credentials",
-                        "scope": KROGER_SCOPES,
+                        "scope": self.scope,
                     },
                     auth=(self.client_id, self.client_secret),
                     headers={

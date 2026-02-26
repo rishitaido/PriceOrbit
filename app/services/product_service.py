@@ -8,9 +8,12 @@ and automated Kroger price updates.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from difflib import SequenceMatcher
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func
@@ -35,8 +38,20 @@ logger = logging.getLogger(__name__)
 class ProductService:
     """Service class for Product CRUD and product-domain workflows."""
 
+    CATEGORY_COMPATIBILITY_KEYWORDS = {
+        "Fresh Produce": {"produce"},
+        "Dairy & Eggs": {"dairy", "egg"},
+        "Meat & Seafood": {"meat", "seafood"},
+        "Pantry Staples": {"pantry", "grocery", "baking", "canned", "pasta", "rice"},
+        "Frozen Foods": {"frozen"},
+    }
+
     def __init__(self, db: Session) -> None:
         self.db = db
+        self._override_by_name: Dict[str, str] = {}
+        self._override_by_product_id: Dict[int, str] = {}
+        self._aliases_by_name: Dict[str, List[str]] = {}
+        self._load_kroger_mapping_controls()
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -51,6 +66,143 @@ class ProductService:
                 "Pagination 'limit' must be between 1 and 100.",
                 details={"limit": limit},
             )
+
+    @staticmethod
+    def _is_certification_environment() -> bool:
+        return "api-ce.kroger.com" in (settings.KROGER_BASE_URL or "")
+
+    def _effective_min_match_confidence(self) -> float:
+        if self._is_certification_environment():
+            return settings.KROGER_CERT_MIN_MATCH_CONFIDENCE
+        return settings.KROGER_MIN_MATCH_CONFIDENCE
+
+    @staticmethod
+    def _is_unmatched_product_error(exc: Exception) -> bool:
+        return "No product match found for" in str(exc)
+
+    @staticmethod
+    def _normalize_lookup_key(value: str) -> str:
+        return str(value or "").strip().lower()
+
+    @staticmethod
+    def _resolve_file_path(raw_path: str) -> Path:
+        candidate = Path(raw_path).expanduser()
+        if not candidate.is_absolute():
+            candidate = Path.cwd() / candidate
+        return candidate
+
+    @classmethod
+    def _load_json_file(cls, raw_path: str, label: str) -> Dict[str, Any]:
+        path = cls._resolve_file_path(raw_path)
+        if not path.exists():
+            logger.info("%s file not found at %s; continuing without it", label, path)
+            return {}
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            logger.warning("Invalid JSON in %s file %s: %s", label, path, exc)
+            return {}
+        except OSError as exc:
+            logger.warning("Unable to read %s file %s: %s", label, path, exc)
+            return {}
+
+        if not isinstance(payload, dict):
+            logger.warning("%s file %s must contain a top-level JSON object", label, path)
+            return {}
+        return payload
+
+    def _load_kroger_mapping_controls(self) -> None:
+        overrides_payload = self._load_json_file(
+            settings.KROGER_OVERRIDE_FILE,
+            label="Kroger override",
+        )
+        aliases_payload = self._load_json_file(
+            settings.KROGER_ALIAS_FILE,
+            label="Kroger alias",
+        )
+
+        by_name_raw: Dict[str, Any] = {}
+        by_product_id_raw: Dict[str, Any] = {}
+        if "by_name" in overrides_payload or "by_product_id" in overrides_payload:
+            if isinstance(overrides_payload.get("by_name"), dict):
+                by_name_raw = overrides_payload.get("by_name", {})
+            if isinstance(overrides_payload.get("by_product_id"), dict):
+                by_product_id_raw = overrides_payload.get("by_product_id", {})
+        else:
+            by_name_raw = overrides_payload
+
+        normalized_by_name: Dict[str, str] = {}
+        for product_name, kroger_id in by_name_raw.items():
+            normalized_name = self._normalize_lookup_key(str(product_name))
+            normalized_kroger_id = str(kroger_id).strip()
+            if normalized_name and normalized_kroger_id:
+                normalized_by_name[normalized_name] = normalized_kroger_id
+
+        normalized_by_product_id: Dict[int, str] = {}
+        for product_id_key, kroger_id in by_product_id_raw.items():
+            normalized_kroger_id = str(kroger_id).strip()
+            if not normalized_kroger_id:
+                continue
+            try:
+                normalized_product_id = int(str(product_id_key).strip())
+            except ValueError:
+                continue
+            normalized_by_product_id[normalized_product_id] = normalized_kroger_id
+
+        normalized_aliases: Dict[str, List[str]] = {}
+        for product_name, alias_values in aliases_payload.items():
+            normalized_name = self._normalize_lookup_key(str(product_name))
+            if not normalized_name:
+                continue
+
+            alias_list: List[str]
+            if isinstance(alias_values, str):
+                alias_list = [alias_values]
+            elif isinstance(alias_values, list):
+                alias_list = [str(alias) for alias in alias_values]
+            else:
+                continue
+
+            deduped: List[str] = []
+            seen: set[str] = set()
+            for alias in alias_list:
+                normalized_alias = alias.strip()
+                normalized_alias_key = self._normalize_lookup_key(normalized_alias)
+                if not normalized_alias or normalized_alias_key in seen:
+                    continue
+                seen.add(normalized_alias_key)
+                deduped.append(normalized_alias)
+            if deduped:
+                normalized_aliases[normalized_name] = deduped
+
+        self._override_by_name = normalized_by_name
+        self._override_by_product_id = normalized_by_product_id
+        self._aliases_by_name = normalized_aliases
+
+    def _get_override_kroger_id(self, product: Product) -> Optional[str]:
+        if product.id in self._override_by_product_id:
+            return self._override_by_product_id[product.id]
+
+        normalized_name = self._normalize_lookup_key(product.name)
+        return self._override_by_name.get(normalized_name)
+
+    def _get_search_terms(self, product_name: str) -> List[str]:
+        primary = (product_name or "").strip()
+        if not primary:
+            return []
+
+        normalized_name = self._normalize_lookup_key(primary)
+        terms = [primary]
+        seen = {normalized_name}
+
+        for alias in self._aliases_by_name.get(normalized_name, []):
+            normalized_alias = self._normalize_lookup_key(alias)
+            if not normalized_alias or normalized_alias in seen:
+                continue
+            seen.add(normalized_alias)
+            terms.append(alias)
+
+        return terms
 
     def _commit_or_raise(self) -> None:
         try:
@@ -304,24 +456,52 @@ class ProductService:
     # ------------------------------------------------------------------
 
     async def _resolve_kroger_product(self, product: Product, kroger: KrogerService) -> Dict[str, Any]:
+        override_kroger_id = self._get_override_kroger_id(product)
+        if override_kroger_id:
+            if product.kroger_product_id != override_kroger_id:
+                product.kroger_product_id = override_kroger_id
+                logger.info(
+                    "Applied manual Kroger override for product id=%s: %s",
+                    product.id,
+                    override_kroger_id,
+                )
+
+            payload = await kroger.get_product_details(product.kroger_product_id)
+            override_image = self._extract_image_from_search_candidate(payload)
+            if override_image:
+                product.image_url = override_image
+            return payload
+
         if product.kroger_product_id:
             return await kroger.get_product_details(product.kroger_product_id)
 
-        match = await kroger.find_kroger_product(product.name)
-        if not match:
-            raise ExternalAPIError("Kroger", f"No product match found for '{product.name}'.")
+        search_terms = self._get_search_terms(product.name)
+        for index, search_term in enumerate(search_terms):
+            min_confidence = self._effective_min_match_confidence()
+            if index > 0:
+                min_confidence = min(min_confidence, settings.KROGER_ALIAS_MIN_MATCH_CONFIDENCE)
 
-        product.kroger_product_id = match["product_id"]
-        if match.get("image_url"):
-            product.image_url = match["image_url"]
+            match = await kroger.find_kroger_product(
+                search_term,
+                min_confidence=min_confidence,
+            )
+            if not match:
+                continue
 
-        logger.info(
-            "Mapped product id=%s to Kroger id=%s with confidence=%s",
-            product.id,
-            product.kroger_product_id,
-            match.get("confidence"),
-        )
-        return await kroger.get_product_details(product.kroger_product_id)
+            product.kroger_product_id = match["product_id"]
+            if match.get("image_url"):
+                product.image_url = match["image_url"]
+
+            logger.info(
+                "Mapped product id=%s to Kroger id=%s using term='%s' confidence=%s",
+                product.id,
+                product.kroger_product_id,
+                search_term,
+                match.get("confidence"),
+            )
+            return await kroger.get_product_details(product.kroger_product_id)
+
+        raise ExternalAPIError("Kroger", f"No product match found for '{product.name}'.")
 
     @staticmethod
     def _extract_price_from_kroger_payload(payload: Dict[str, Any]) -> Decimal:
@@ -329,23 +509,116 @@ class ProductService:
         if not items:
             raise ExternalAPIError("Kroger", "Product payload did not include item pricing data.")
 
-        item = items[0]
-        price_block = item.get("price") or {}
-        national_block = item.get("nationalPrice") or {}
+        for item in items:
+            price_block = item.get("price") or {}
+            national_block = item.get("nationalPrice") or {}
+            raw_price = (
+                price_block.get("regular")
+                or price_block.get("promo")
+                or national_block.get("regular")
+                or national_block.get("promo")
+            )
+            if raw_price is None:
+                continue
+            try:
+                return Decimal(str(raw_price))
+            except Exception as exc:  # pragma: no cover - defensive guard
+                raise ExternalAPIError("Kroger", f"Invalid price value received: {raw_price}") from exc
 
-        raw_price = (
-            price_block.get("regular")
-            or price_block.get("promo")
-            or national_block.get("regular")
-            or national_block.get("promo")
+        raise ExternalAPIError("Kroger", "No regular/promo price found for product.")
+
+    @staticmethod
+    def _confidence(search_term: str, description: str) -> float:
+        return SequenceMatcher(None, search_term.lower(), description.lower()).ratio()
+
+    @staticmethod
+    def _extract_image_from_search_candidate(candidate: Dict[str, Any]) -> Optional[str]:
+        images = candidate.get("images") or []
+        if not images:
+            return None
+        sizes = (images[0] or {}).get("sizes") or []
+        if not sizes:
+            return None
+        return sizes[-1].get("url")
+
+    @classmethod
+    def _is_category_compatible(cls, product_category: str, candidate: Dict[str, Any]) -> bool:
+        expected_keywords = cls.CATEGORY_COMPATIBILITY_KEYWORDS.get(product_category)
+        if not expected_keywords:
+            return True
+
+        categories = candidate.get("categories") or []
+        if not categories:
+            return True
+
+        candidate_categories = {str(value).strip().lower() for value in categories if value}
+        for candidate_category in candidate_categories:
+            if any(keyword in candidate_category for keyword in expected_keywords):
+                return True
+        return False
+
+    async def _fallback_price_from_search_candidates(
+        self,
+        product: Product,
+        kroger: KrogerService,
+        limit: int = 10,
+    ) -> Optional[Decimal]:
+        candidates: List[Dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        for search_term in self._get_search_terms(product.name):
+            term_candidates = await kroger.search_products(search_term, limit=limit)
+            for candidate in term_candidates:
+                candidate_id = str(candidate.get("productId") or "").strip()
+                if not candidate_id:
+                    continue
+                if candidate_id in seen_ids:
+                    continue
+                seen_ids.add(candidate_id)
+                candidates.append(candidate)
+
+        if not candidates:
+            return None
+
+        ranked = sorted(
+            candidates,
+            key=lambda item: self._confidence(product.name, item.get("description") or ""),
+            reverse=True,
         )
-        if raw_price is None:
-            raise ExternalAPIError("Kroger", "No regular/promo price found for product.")
 
-        try:
-            return Decimal(str(raw_price))
-        except Exception as exc:  # pragma: no cover - defensive guard
-            raise ExternalAPIError("Kroger", f"Invalid price value received: {raw_price}") from exc
+        compatible_ranked = [
+            candidate
+            for candidate in ranked
+            if self._is_category_compatible(product.category, candidate)
+        ]
+
+        # Prefer category-compatible candidates first; then fall back to all.
+        candidate_groups = [compatible_ranked, ranked] if compatible_ranked else [ranked]
+        seen: set[str] = set()
+
+        for group in candidate_groups:
+            for candidate in group:
+                candidate_id = candidate.get("productId")
+                if candidate_id in seen:
+                    continue
+                seen.add(candidate_id)
+
+                try:
+                    price = self._extract_price_from_kroger_payload(candidate)
+                except ExternalAPIError:
+                    continue
+
+                if candidate_id and candidate_id != product.kroger_product_id:
+                    product.kroger_product_id = candidate_id
+                    image_url = self._extract_image_from_search_candidate(candidate)
+                    if image_url:
+                        product.image_url = image_url
+                    logger.info(
+                        "Fallback mapped product id=%s to Kroger id=%s using priced candidate",
+                        product.id,
+                        candidate_id,
+                    )
+                return price
+        return None
 
     async def _fetch_price_with_retries(
         self,
@@ -356,10 +629,21 @@ class ProductService:
         for attempt in range(retries):
             try:
                 payload = await self._resolve_kroger_product(product, kroger)
-                return self._extract_price_from_kroger_payload(payload)
+                try:
+                    return self._extract_price_from_kroger_payload(payload)
+                except ExternalAPIError:
+                    fallback_price = await self._fallback_price_from_search_candidates(product, kroger)
+                    if fallback_price is not None:
+                        return fallback_price
+                    raise
             except (KrogerAPIError, KrogerRateLimitError, ExternalAPIError, ValueError) as exc:
                 is_last_attempt = attempt == retries - 1
-                if is_last_attempt:
+                skip_unmatched_retries = (
+                    settings.KROGER_SKIP_UNMATCHED_RETRIES and self._is_unmatched_product_error(exc)
+                )
+                if is_last_attempt or skip_unmatched_retries:
+                    if isinstance(exc, ExternalAPIError):
+                        raise exc
                     raise ExternalAPIError("Kroger", str(exc)) from exc
 
                 backoff = 2 ** attempt

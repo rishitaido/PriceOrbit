@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     KROGER_CLIENT_SECRET: str
     KROGER_BASE_URL: str  = "https://api.kroger.com/v1"
     KROGER_AUTH_URL: str = "https://api.kroger.com/v1/connect/oauth2/token"
+    KROGER_MIN_MATCH_CONFIDENCE: float = 70.0
+    KROGER_CERT_MIN_MATCH_CONFIDENCE: float = 55.0
+    KROGER_ALIAS_MIN_MATCH_CONFIDENCE: float = 45.0
+    KROGER_SKIP_UNMATCHED_RETRIES: bool = False
+    KROGER_OVERRIDE_FILE: str = "data/kroger_product_overrides.json"
+    KROGER_ALIAS_FILE: str = "data/kroger_search_aliases.json"
     
     # CORS Configuration
     CORS_ORIGINS: List[str] = [
@@ -52,8 +58,6 @@ class Settings(BaseSettings):
 
 # Create global settings instance
 settings = Settings()
-
-
 
 
 
