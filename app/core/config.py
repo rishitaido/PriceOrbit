@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     VERSION: str = '1.0.0'
     DEBUG: bool = True
     PORT: int = 8080 
-    SECRET_KEY: str = "" 
+    SECRET_KEY: str = "change-me-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     #Database Config
     DATABASE_URL: str 
@@ -58,6 +60,5 @@ class Settings(BaseSettings):
 
 # Create global settings instance
 settings = Settings()
-
 
 

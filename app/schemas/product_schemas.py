@@ -129,6 +129,29 @@ class PriceHistoryResponse(BaseModel):
     statistics: Dict[str, Any]
 
 
+class ProductStorePriceEntry(BaseModel):
+    """Store-specific price entry for a single product."""
+
+    store_id: int
+    store_name: str
+    kroger_location_id: Optional[str] = None
+    price: Optional[Decimal] = None
+    last_updated: Optional[datetime] = None
+    source: str = Field(
+        ...,
+        description="Data source for the price value: kroger_api, database, or unavailable",
+    )
+    distance: Optional[float] = None
+
+
+class ProductStorePriceListResponse(BaseModel):
+    """Response schema for product prices across stores."""
+
+    product_id: int
+    product_name: str
+    prices: List[ProductStorePriceEntry] = Field(default_factory=list)
+
+
 class PriceUpdateResponse(BaseModel):
     """Response schema for single-product automated price updates."""
 

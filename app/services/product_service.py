@@ -28,6 +28,8 @@ from app.core.exceptions import (
     ValidationError,
 )
 from app.models.product_model import Product
+from app.models.product_store_price_model import ProductStorePrice
+from app.models.store_model import Store
 from app.schemas.product_schemas import ProductCreate, ProductUpdate
 from app.services.kroger_service import KrogerAPIError, KrogerRateLimitError, KrogerService
 from app.services.price_history_service import PriceHistoryService
@@ -204,6 +206,74 @@ class ProductService:
 
         return terms
 
+    @staticmethod
+    def parse_store_ids_csv(store_ids: Optional[str]) -> Optional[List[int]]:
+        """
+        Parse comma-separated store IDs into a unique ordered integer list.
+        """
+        if store_ids is None:
+            return None
+
+        raw_values = [value.strip() for value in store_ids.split(",")]
+        filtered_values = [value for value in raw_values if value]
+        if not filtered_values:
+            return None
+
+        parsed_ids: List[int] = []
+        seen: set[int] = set()
+        for raw_value in filtered_values:
+            if not raw_value.isdigit():
+                raise ValidationError(
+                    "store_ids must be a comma-separated list of positive integers.",
+                    details={"store_ids": store_ids},
+                )
+            parsed_id = int(raw_value)
+            if parsed_id <= 0:
+                raise ValidationError(
+                    "store_ids must contain positive integers.",
+                    details={"store_ids": store_ids},
+                )
+            if parsed_id not in seen:
+                seen.add(parsed_id)
+                parsed_ids.append(parsed_id)
+        return parsed_ids
+
+    def _get_stores_for_price_lookup(self, store_ids: Optional[List[int]]) -> List[Store]:
+        query = self.db.query(Store)
+        if store_ids:
+            stores = query.filter(Store.id.in_(store_ids)).order_by(Store.id.asc()).all()
+            found_ids = {store.id for store in stores}
+            missing_ids = [store_id for store_id in store_ids if store_id not in found_ids]
+            if missing_ids:
+                raise NotFoundError("Store", ",".join(str(item) for item in missing_ids))
+            return stores
+
+        return query.order_by(Store.id.asc()).all()
+
+    def _upsert_product_store_price(
+        self,
+        product_id: int,
+        store_id: int,
+        price: Decimal,
+    ) -> ProductStorePrice:
+        record = (
+            self.db.query(ProductStorePrice)
+            .filter(
+                ProductStorePrice.product_id == product_id,
+                ProductStorePrice.store_id == store_id,
+            )
+            .first()
+        )
+
+        if record is None:
+            record = ProductStorePrice(product_id=product_id, store_id=store_id, price=price)
+            self.db.add(record)
+        else:
+            record.price = price
+            record.last_updated = datetime.now(timezone.utc)
+
+        return record
+
     def _commit_or_raise(self) -> None:
         try:
             self.db.commit()
@@ -311,6 +381,108 @@ class ProductService:
             history=history,
             stats=stats,
         )
+
+    async def get_product_prices_by_store(
+        self,
+        product_id: int,
+        store_ids: Optional[List[int]] = None,
+        refresh_from_api: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Return store-specific prices for a product.
+
+        If ``refresh_from_api`` is true, the service attempts to fetch current
+        prices from Kroger for each requested store that has a
+        ``kroger_location_id`` configured, then persists those prices in
+        ``product_store_prices``.
+        """
+        product = self.get_product_by_id(product_id)
+        stores = self._get_stores_for_price_lookup(store_ids)
+
+        if not stores:
+            return {"product_id": product.id, "product_name": product.name, "prices": []}
+
+        fetched_store_ids: set[int] = set()
+        product_updated = False
+
+        if refresh_from_api:
+            async with KrogerService(
+                client_id=settings.KROGER_CLIENT_ID,
+                client_secret=settings.KROGER_CLIENT_SECRET,
+            ) as kroger:
+                if not product.kroger_product_id:
+                    try:
+                        await self._resolve_kroger_product(product, kroger)
+                        product_updated = True
+                    except ExternalAPIError as exc:
+                        logger.warning(
+                            "Unable to map product id=%s to Kroger before store pricing lookup: %s",
+                            product.id,
+                            exc,
+                        )
+
+                if product.kroger_product_id:
+                    for store in stores:
+                        if not store.kroger_location_id:
+                            continue
+
+                        try:
+                            payload = await kroger.get_product_details(
+                                product.kroger_product_id,
+                                location_id=store.kroger_location_id,
+                            )
+                            price = self._extract_price_from_kroger_payload(payload)
+                            self._upsert_product_store_price(product.id, store.id, price)
+                            fetched_store_ids.add(store.id)
+                        except (ExternalAPIError, KrogerAPIError, KrogerRateLimitError, ValueError) as exc:
+                            logger.warning(
+                                "Store price lookup failed product_id=%s store_id=%s location=%s: %s",
+                                product.id,
+                                store.id,
+                                store.kroger_location_id,
+                                exc,
+                            )
+
+            if product_updated or fetched_store_ids:
+                self._commit_or_raise()
+
+        records = (
+            self.db.query(ProductStorePrice)
+            .filter(
+                ProductStorePrice.product_id == product.id,
+                ProductStorePrice.store_id.in_([store.id for store in stores]),
+            )
+            .all()
+        )
+        records_by_store_id = {record.store_id: record for record in records}
+
+        prices: List[Dict[str, Any]] = []
+        for store in stores:
+            record = records_by_store_id.get(store.id)
+            if store.id in fetched_store_ids:
+                source = "kroger_api"
+            elif record is not None:
+                source = "database"
+            else:
+                source = "unavailable"
+
+            prices.append(
+                {
+                    "store_id": store.id,
+                    "store_name": store.name,
+                    "kroger_location_id": store.kroger_location_id,
+                    "price": record.price if record is not None else None,
+                    "last_updated": record.last_updated if record is not None else None,
+                    "source": source,
+                    "distance": None,
+                }
+            )
+
+        return {
+            "product_id": product.id,
+            "product_name": product.name,
+            "prices": prices,
+        }
 
     # ------------------------------------------------------------------
     # Write operations

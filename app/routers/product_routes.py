@@ -11,6 +11,7 @@ from app.schemas.product_schemas import (
     BatchPriceUpdateResponse,
     PriceHistoryResponse,
     PricePointCreate,
+    ProductStorePriceListResponse,
     PriceUpdateResponse,
     ProductCreate,
     ProductListResponse,
@@ -123,6 +124,28 @@ def get_product_price_history(
 ):
     payload = service.get_price_history(product_id)
     return PriceHistoryResponse(**payload)
+
+
+@router.get("/{product_id}/prices", response_model=ProductStorePriceListResponse)
+async def get_product_prices_by_store(
+    product_id: int,
+    store_ids: str | None = Query(
+        None,
+        description="Optional comma-separated store IDs, for example: 1,2,3",
+    ),
+    refresh: bool = Query(
+        True,
+        description="When true, fetch fresh store-specific prices from Kroger and persist them.",
+    ),
+    service: ProductService = Depends(get_product_service),
+):
+    parsed_store_ids = ProductService.parse_store_ids_csv(store_ids)
+    payload = await service.get_product_prices_by_store(
+        product_id=product_id,
+        store_ids=parsed_store_ids,
+        refresh_from_api=refresh,
+    )
+    return ProductStorePriceListResponse(**payload)
 
 
 @router.post("/{product_id}/add-price-point", response_model=ProductResponse)
