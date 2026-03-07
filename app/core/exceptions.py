@@ -85,3 +85,12 @@ class ExternalAPIError(PriceOrbitError):
             message=f"External service '{service}' failed: {reason}",
             details={"service": service, "reason": reason},
         )
+
+
+class AuthenticationError(PriceOrbitError):
+    """
+    Raised when authentication or token validation fails.
+    Maps to HTTP 401.
+    """
+
+    pass

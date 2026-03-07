@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse
 from app.core.config import settings 
 from app.core.exceptions import (
+    AuthenticationError,
     DuplicateError,
     ExternalAPIError,
     NotFoundError,
@@ -14,7 +15,9 @@ from app.core.exceptions import (
     ValidationError,
 )
 from app.routers.main import router as main_router 
+from app.routers.auth_routes import router as auth_routes_router
 from app.routers.product_routes import router as product_routes_router
+from app.routers.store_routes import router as store_routes_router
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="app/templates")
@@ -78,6 +81,11 @@ async def handle_external(_: Request, exc: ExternalAPIError):
     return _error_response(502, "EXTERNAL_API_ERROR", exc)
 
 
+@app.exception_handler(AuthenticationError)
+async def handle_auth(_: Request, exc: AuthenticationError):
+    return _error_response(401, "AUTHENTICATION_ERROR", exc)
+
+
 @app.exception_handler(PriceOrbitError)
 async def handle_domain_error(_: Request, exc: PriceOrbitError):
     return _error_response(400, "DOMAIN_ERROR", exc)
@@ -96,7 +104,9 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 #Include Routers 
 app.include_router(main_router, tags=["main"])
+app.include_router(auth_routes_router, prefix="/api/auth", tags=["auth"])
 app.include_router(product_routes_router, prefix= "/api/products", tags = ["products"])
+app.include_router(store_routes_router, prefix="/api/stores", tags=["stores"])
 
 @app.get("/health", tags = ["health"])
 def health_check(): 

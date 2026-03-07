@@ -333,15 +333,21 @@ class KrogerService:
         )
         return match
 
-    async def get_product_by_id(self, product_id: str) -> dict:
+    async def get_product_by_id(
+        self,
+        product_id: str,
+        *,
+        location_id: Optional[str] = None,
+    ) -> dict:
         if len(product_id) != 13:
             raise ValueError(f"productId must be exactly 13 digits (got {len(product_id)}).")
 
-        cache_key = f"product:{product_id}:{self.location_id}"
+        effective_location_id = (location_id or self.location_id).strip()
+        cache_key = f"product:{product_id}:{effective_location_id}"
         if self.use_cache and (cached := _cache_get(cache_key)):
             return cached
 
-        params = {"filter.locationId": self.location_id}
+        params = {"filter.locationId": effective_location_id}
         data = await self._request("GET", f"/products/{product_id}", params=params)
         product: dict = data.get("data", {})
 
@@ -351,9 +357,14 @@ class KrogerService:
         logger.info("get_product_by_id('%s') -> %s", product_id, product.get("description"))
         return product
 
-    async def get_product_details(self, kroger_product_id: str) -> dict:
+    async def get_product_details(
+        self,
+        kroger_product_id: str,
+        *,
+        location_id: Optional[str] = None,
+    ) -> dict:
         """Return full Kroger payload for a specific Kroger product ID."""
-        return await self.get_product_by_id(kroger_product_id)
+        return await self.get_product_by_id(kroger_product_id, location_id=location_id)
 
     async def get_product_price(self, product_name: str) -> dict:
         cache_key = f"price:{product_name}:{self.location_id}"
