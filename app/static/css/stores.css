@@ -1,0 +1,334 @@
+/* =========================
+   STORES PAGE
+========================= */
+
+/* Two-column layout: list panel + map */
+.stores-layout {
+  display: flex;
+  gap: 20px;
+  height: calc(100vh - 280px);
+  min-height: 480px;
+}
+
+/* ── LEFT PANEL ── */
+.stores-panel {
+  width: 340px;
+  min-width: 340px;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.stores-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  background: #f8f9fa;
+  flex-shrink: 0;
+}
+
+.btn-locate {
+  background: #5dd1ab;
+  color: white;
+  border: none;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-locate:hover {
+  background: #4bc199;
+  transform: translateY(-1px);
+}
+
+.btn-locate.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* store list scroll area */
+.stores-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.stores-list::-webkit-scrollbar {
+  width: 4px;
+}
+.stores-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.stores-list::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}
+
+/* individual store card */
+.store-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.store-card:hover {
+  background: #f8f9fa;
+}
+
+.store-card.active {
+  background: #f0fdf8;
+  border-left: 3px solid #5dd1ab;
+}
+
+.store-card-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #f0fdf8 0%, #dcfce7 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+  color: #16a34a;
+}
+
+.store-card-icon.marketplace {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
+.store-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.store-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.store-card-addr {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.store-card-city {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.store-card-dist {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5dd1ab;
+  background: #f0fdf8;
+  border: 1px solid #bbf7d0;
+  padding: 2px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+  align-self: flex-start;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* ── MAP ── */
+.map-container {
+  flex: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #eee;
+  min-height: 0;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── LEAFLET POPUP OVERRIDES ── */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+  font-family: Arial, sans-serif !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  min-width: 220px;
+}
+
+.store-popup {
+  padding: 16px;
+}
+
+.store-popup-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.store-popup-name i {
+  color: #5dd1ab;
+}
+
+.store-popup-row {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.store-popup-row i {
+  width: 14px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+
+.store-popup-row span {
+  color: #333;
+}
+
+.store-popup-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px;
+  background: #5dd1ab;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.store-popup-btn:hover {
+  background: #4bc199;
+}
+
+/* Empty state */
+.stores-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.stores-empty i {
+  font-size: 36px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+  display: block;
+}
+
+.stores-empty p {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ── ZIP SEARCH ── */
+.zip-search-wrap {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.zip-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.zip-input-row .search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.zip-input-row .search-container i {
+  position: absolute;
+  left: 12px;
+  color: #666;
+  font-size: 13px;
+}
+
+.zip-input-row .search-container input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.zip-input-row .search-container input:focus {
+  border-color: #5dd1ab;
+}
+
+.zip-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .stores-layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .stores-panel {
+    width: 100%;
+    min-width: unset;
+    max-height: 320px;
+  }
+
+  .map-container {
+    height: 400px;
+  }
+}

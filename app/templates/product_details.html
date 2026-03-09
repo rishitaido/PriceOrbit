@@ -15,6 +15,9 @@
   
   <!-- Chart.js for price history -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Leaflet for store price map (Ticket #43) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 
 <body>
@@ -59,7 +62,7 @@
         </li>
 
         <li>
-          <a href="#store-locator">
+          <a href="/stores">
             <span class="icon"><i class="fa-solid fa-store"></i></span>
             <span class="text">Store Locator</span>
           </a>
@@ -76,6 +79,12 @@
           <a href="#settings">
             <span class="icon"><i class="fa-solid fa-gear"></i></span>
             <span class="text">Settings</span>
+          </a>
+        </li>
+        <li style="margin-top: auto; padding-top: 16px; border-top: 1px solid #eee;">
+          <a href="#" id="logout-btn" onclick="logout()" style="color: #dc2626;">
+            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+            <span class="text">Logout</span>
           </a>
         </li>
       </ul>
@@ -152,11 +161,14 @@
                   <span id="current-price">$0.00</span>
                   <span id="price-change-badge" class="price-badge"></span>
                 </div>
-                <div style="margin-top: 12px;">
+                <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                   <button id="update-price-btn" class="btn-api-docs" type="button">
                     <i class="fa-solid fa-rotate"></i> Update Price
                   </button>
-                  <span id="update-price-status" style="margin-left: 10px; color: #666;"></span>
+                  <button id="find-in-stores-btn" class="btn-find-stores" type="button">
+                    <i class="fa-solid fa-store"></i> Find in Stores
+                  </button>
+                  <span id="update-price-status" style="margin-left: 4px; color: #666;"></span>
                 </div>
                 <div class="price-stats-grid">
                   <div class="price-stat-item">
@@ -319,7 +331,64 @@
     </main>
   </div>
 
+  <!-- Store Price Comparison Modal (Ticket #43) -->
+  <div id="store-map-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">
+            <i class="fa-solid fa-store"></i>
+            Find in Stores
+          </h2>
+          <p id="modal-product-name" class="modal-subtitle">Loading...</p>
+        </div>
+        <button id="close-modal-btn" class="modal-close" title="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Legend -->
+      <div class="map-legend">
+        <span class="legend-item">
+          <span class="legend-dot legend-green"></span> Lowest Price
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot legend-yellow"></span> Mid Price
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot legend-red"></span> Highest Price
+        </span>
+        <span class="legend-item" style="margin-left: auto;">
+          <i class="fa-solid fa-spinner fa-spin" id="modal-loading-icon"></i>
+          <span id="modal-store-count"></span>
+        </span>
+      </div>
+
+      <div class="modal-body">
+        <!-- Map -->
+        <div id="store-price-map"></div>
+
+        <!-- Store price list -->
+        <div class="modal-store-list" id="modal-store-list">
+          <div class="loading-state">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Finding nearby stores...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <!-- JavaScript -->
+  <script>
+    function logout() {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("user_name");
+      window.location.href = "/";
+    }
+  </script>
   <script src="/static/js/main.js"></script>
   <script src="/static/js/product_details.js"></script>
 </body>

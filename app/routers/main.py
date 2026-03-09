@@ -28,6 +28,24 @@ async def products(request: Request):
     )
 
 
+@router.get("/register", response_class=HTMLResponse, tags=["pages"])
+async def register(request: Request):
+    """User registration page"""
+    return templates.TemplateResponse(
+        "register.html",
+        {"request": request, "title": "PriceOrbit - Sign Up"}
+    )
+
+
+@router.get("/stores", response_class=HTMLResponse, tags=["pages"])
+async def stores(request: Request):
+    """Store locator map page"""
+    return templates.TemplateResponse(
+        "stores.html",
+        {"request": request, "title": "PriceOrbit - Store Locator"}
+    )
+
+
 @router.get("/about.html", response_class=HTMLResponse, tags=["pages"])
 async def about(request: Request):
     """
