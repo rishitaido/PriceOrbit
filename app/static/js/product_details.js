@@ -375,7 +375,7 @@ function hideLoading() {
 }
 
 // =============================================================================
-// TICKET #43 — STORE PRICE COMPARISON MAP
+// STORE PRICE COMPARISON MAP
 // =============================================================================
 
 const STORES_API_BASE  = "/api/stores";
