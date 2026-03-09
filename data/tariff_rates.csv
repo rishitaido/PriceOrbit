@@ -1,0 +1,31 @@
+product_name,hts_code,tariff_rate
+Bananas,0803.90.00,0.0
+Avocados,0804.40.00,0.0
+Tomatoes,0702.00.20,0.0
+Bell Peppers,0709.60.40,0.0
+Garlic,0703.20.00,0.0
+Strawberries,0810.10.20,0.0
+Blueberries,0810.40.00,0.0
+Oranges,0805.10.00,0.0
+Spinach,0709.70.00,20.0
+Broccoli,0704.10.20,2.5
+Salmon Fillet,0304.41.00,0.0
+Shrimp,0306.17.00,0.0
+Tilapia,0304.61.00,0.0
+Lamb Chops,0204.22.20,0.0
+Beef Steak,0201.30.02,4.0
+Ground Turkey,0207.26.00,0.0
+Pork Chops,0203.19.40,0.0
+White Rice,1006.30.90,0.0
+Brown Rice,1006.20.40,0.0
+Pasta,1902.19.20,0.0
+Olive Oil,1509.30.20,0.0
+Vegetable Oil,1507.90.40,19.1
+Sugar,1701.99.50,0.0
+Peanut Butter,2008.11.02,0.0
+Canned Chickpeas,2005.99.85,0.0
+Almond Milk,2202.99.91,0.0
+Parmesan Cheese,0406.90.97,0.0
+Mozzarella Cheese,0406.10.48,0.0
+Frozen Berries,0811.90.80,14.5
+Frozen Vegetables,0710.90.91,14.0
