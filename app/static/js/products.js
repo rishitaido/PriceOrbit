@@ -90,10 +90,10 @@ function applyClientFilters(products) {
 
 function updateDashboardStats(products, total) {
   const avgHealth = products.length
-    ? Math.round(products.reduce((sum, p) => sum + p.health_score, 0) / products.length)
+    ? Math.round(products.reduce((sum, p) => sum + Number(p.health_score || 0), 0) / products.length)
     : 0;
   const highRisk = products.filter((p) => p.health_score < 40).length;
-  const activeAlerts = products.filter((p) => p.health_score < 70).length;
+  const activeAlerts = 0; // Real alerts system coming in Sprint 4
 
   document.getElementById("stat-total").textContent = total;
   document.getElementById("stat-health").textContent = avgHealth;
