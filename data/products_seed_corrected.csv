@@ -1,0 +1,51 @@
+name,category,import_dependency,origin_country,hts_code,tariff_rate,REVIEW_NEEDED
+Bananas,Fresh Produce,High,Guatemala,0803.90.00,0.00,Primary source can vary by season (Guatemala/Ecuador/Costa Rica).
+Apples,Fresh Produce,Low,United States,0808.10.00,0.00,
+Oranges,Fresh Produce,Low,United States,0805.10.00,0.00,
+Strawberries,Fresh Produce,Medium,Mexico,0810.10.20,0.00,MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Blueberries,Fresh Produce,Medium,Peru,0810.40.00,0.00,Primary source can vary by season (Peru/Chile/Mexico).
+Avocados,Fresh Produce,High,Mexico,0804.40.00,0.00,MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Tomatoes,Fresh Produce,High,Mexico,0702.00.20,0.00,Origin can shift seasonally between Mexico and Canada. | MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Onions,Fresh Produce,Low,United States,0703.10.40,0.00,
+Potatoes,Fresh Produce,Low,United States,0701.90.10,0.00,
+Spinach,Fresh Produce,Low,United States,0709.70.00,0.00,
+Broccoli,Fresh Produce,Medium,Mexico,0704.10.20,0.00,Origin can shift seasonally between Mexico and U.S. supply.
+Bell Peppers,Fresh Produce,High,Mexico,0709.60.40,0.00,MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Carrots,Fresh Produce,Low,United States,0706.10.05,0.00,
+Lettuce,Fresh Produce,Low,United States,0705.19.20,0.00,
+Garlic,Fresh Produce,High,China,0703.20.00,25.00,MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model. | Includes Section 301 additional duty from 9903.88.03 (+25%).
+Whole Milk,Dairy & Eggs,Low,United States,0401.20.40,0.00,HTS line is quota-sensitive; confirm if product should be import-coded at all.
+Almond Milk,Dairy & Eggs,Medium,Canada,2202.99.91,0.00,Country of origin may be U.S. for many brands; confirm SKU-specific source. | MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Cheddar Cheese,Dairy & Eggs,Low,United States,0406.90.95,0.00,Cheddar has multiple quota/quality lines; confirm exact line for imported cheddar SKUs.
+Mozzarella Cheese,Dairy & Eggs,Low,United States,0406.10.48,0.00,Mozzarella line may vary by moisture/content and quota status.
+Greek Yogurt,Dairy & Eggs,Low,United States,0403.20.90,0.00,Yogurt tariff lines vary by quota treatment and composition.
+Butter,Dairy & Eggs,Low,United States,0405.10.20,0.00,Butter line may vary by quota eligibility.
+Eggs,Dairy & Eggs,Low,United States,0407.21.00,0.00,
+Heavy Cream,Dairy & Eggs,Low,United States,0401.50.50,0.00,Cream tariff lines vary by fat content and quota treatment.
+Sour Cream,Dairy & Eggs,Low,United States,0403.90.72,0.00,Sour cream can classify under multiple fermented dairy lines.
+Parmesan Cheese,Dairy & Eggs,High,Italy,0406.90.97,0.00,Cheese line includes quota overlays; verify exact product specs. | MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Chicken Breast,Meat & Seafood,Low,United States,0207.14.00,0.00,Could classify differently for fresh/chilled vs frozen retail pack.
+Ground Beef,Meat & Seafood,Low,United States,0201.30.04,0.00,Ground beef does not map cleanly to a single boneless beef line; confirm exact HTS.
+Pork Chops,Meat & Seafood,Low,United States,0203.19.40,0.00,
+Bacon,Meat & Seafood,Low,United States,0210.12.00,0.00,Bacon classifications vary with curing/smoking detail.
+Salmon Fillet,Meat & Seafood,High,Chile,0304.41.00,0.00,
+Shrimp,Meat & Seafood,High,India,0306.17.00,0.00,Shrimp origin often alternates between India and Ecuador by supplier/season.
+Tilapia,Meat & Seafood,High,China,0304.61.00,25.00,Includes Section 301 additional duty from 9903.88.03 (+25%).
+Ground Turkey,Meat & Seafood,Low,United States,0207.26.00,0.00,Could classify differently for prepared vs raw retail products.
+Beef Steak,Meat & Seafood,Low,United States,0201.30.02,0.00,
+Lamb Chops,Meat & Seafood,High,Australia,0204.22.20,0.00,NZ is also common source; verify supplier mix. | MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+White Rice,Pantry Staples,Medium,India,1006.30.90,0.00,Primary import source can vary (India/Thailand/Vietnam). | MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Brown Rice,Pantry Staples,Medium,India,1006.20.40,0.00,Primary import source can vary (India/Thailand/U.S.). | MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Pasta,Pantry Staples,Low,United States,1902.19.20,0.00,"If imported Italian durum pasta dominates, origin/dependency should be revised."
+Olive Oil,Pantry Staples,High,Spain,1509.30.20,0.00,MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Vegetable Oil,Pantry Staples,Medium,Canada,1507.90.40,0.00,Type-specific sourcing (soy/canola/sunflower) can change origin and HTS line.
+Canned Black Beans,Pantry Staples,Low,United States,2005.51.40,0.00,Bean preparation/packaging can shift subheading selection.
+Canned Chickpeas,Pantry Staples,Medium,Turkey,2005.99.85,0.00,Source can vary (Turkey/Canada/U.S.); confirm supplier origin. | MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+Sugar,Pantry Staples,Medium,Mexico,1701.99.50,0.00,Sugar tariffs depend on quota programs; verify quota status. | MFN duty is specific (non-ad valorem); stored 0.00 for ad valorem-only model.
+All-Purpose Flour,Pantry Staples,Low,United States,1101.00.00,0.00,
+Peanut Butter,Pantry Staples,Low,United States,2008.11.02,0.00,
+Frozen Pizza,Frozen Foods,Low,United States,1905.90.90,0.00,Composite food; HTS can vary by toppings/meat content.
+Frozen Vegetables,Frozen Foods,Medium,Mexico,0710.90.91,0.00,Blend composition and country mix can vary by SKU.
+Frozen Berries,Frozen Foods,Medium,Chile,0811.90.80,0.00,Blend composition can change country of origin seasonally.
+Ice Cream,Frozen Foods,Low,United States,2105.00.40,0.00,Ice cream lines are quota-sensitive and composition-dependent.
+Frozen Chicken Nuggets,Frozen Foods,Low,United States,1602.32.00,0.00,Prepared chicken classifications depend on breading and meat content.
