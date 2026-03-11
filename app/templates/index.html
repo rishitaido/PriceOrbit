@@ -6,110 +6,177 @@
   <title>PriceOrbit - Login</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-  <!-- Live Server 
-  <link rel="stylesheet" href="../static/css/main.css"> -->
-
-  <!-- FastAPI (for deploying) -->
   <link rel="stylesheet" href="/static/css/main.css">
+
+  <style>
+    .auth-message {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .auth-error   { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+    .auth-success { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+    .btn-loading  { opacity: 0.7; pointer-events: none; }
+    .password-wrap { position: relative; }
+    .password-wrap input { width: 100%; padding-right: 40px; }
+    .toggle-password {
+      position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: #999; font-size: 14px; padding: 0;
+    }
+    .toggle-password:hover { color: #555; }
+  </style>
 </head>
 
 <body>
-  <!-- Landing Header -->
   <header class="landing-header" role="banner">
     <div class="logo">
-      <img src="../static/images/logo.png" alt="PriceOrbit Logo - Grocery Price Tracking">
+      <img src="/static/images/logo.png" alt="PriceOrbit Logo">
     </div>
-
     <nav class="landing-nav" role="navigation" aria-label="Main navigation">
-      <a href="#about" aria-label="Learn more about PriceOrbit">About</a>
-      <a href="#contact" aria-label="Contact us">Contact</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
     </nav>
   </header>
 
-  <!-- Landing Main -->
   <main class="landing-main" role="main">
-    <!-- Left side - Welcome text -->
     <section class="welcome-text">
       <h1>Welcome to PriceOrbit</h1>
       <p>Track product prices and predict market trends with tariff intelligence.</p>
-      
-      <!-- Call-to-action button -->
-      <a href="products.html" class="btn-get-started" aria-label="Start tracking products">
+      <a href="/products.html" class="btn-get-started">
         Get Started <i class="fa-solid fa-arrow-right"></i>
       </a>
     </section>
 
-    <!-- Right side - Login form -->
     <section class="login-box" aria-labelledby="login-heading">
       <h2 id="login-heading">Login</h2>
 
-      <form action="products" method="get" aria-label="Login form">
-      
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" placeholder="Enter your email" required aria-required="true">
-        </div>
+      <div id="login-error" class="auth-message auth-error" style="display:none;"></div>
 
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" placeholder="Enter your password" required aria-required="true">
-        </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="Enter your email" required>
+      </div>
 
-        <div class="remember-me">
-          <input type="checkbox" id="remember" name="remember">
-          <label for="remember">Remember me</label>
-        </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-wrap">
+        <input type="password" id="password" placeholder="Enter your password" required>
+        <button type="button" class="toggle-password" onclick="togglePassword('password', this)"><i class="fa-solid fa-eye"></i></button>
+      </div>
+      </div>
 
-        <button type="submit" aria-label="Sign in to your account">Sign In</button>
+      <div class="remember-me">
+        <input type="checkbox" id="remember">
+        <label for="remember">Remember me</label>
+      </div>
 
-        <p class="signup-link">Don't have an account? <a href="#signup" aria-label="Create a new account">Sign up</a></p>
-      </form>
+      <button type="button" id="login-btn" style="width:100%; padding:14px; background:#5dd1ab; color:white; border:none; border-radius:5px; font-size:16px; font-weight:bold; cursor:pointer; margin-bottom:20px;">Sign In</button>
+
+      <p class="signup-link">Don't have an account? <a href="/register">Sign up</a></p>
     </section>
   </main>
 
-  <!-- About Section -->
   <section id="about" class="about-section" role="region" aria-labelledby="about-heading">
     <div class="about-container">
       <h2 id="about-heading">About PriceOrbit</h2>
-      
       <div class="about-content">
         <div class="about-feature">
-          <div class="feature-icon" aria-hidden="true">
-            <i class="fa-solid fa-chart-line"></i>
-          </div>
+          <div class="feature-icon"><i class="fa-solid fa-chart-line"></i></div>
           <h3>Price Tracking</h3>
           <p>Monitor grocery prices in real-time and receive alerts when prices change significantly.</p>
         </div>
-
         <div class="about-feature">
-          <div class="feature-icon" aria-hidden="true">
-            <i class="fa-solid fa-shield-halved"></i>
-          </div>
+          <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
           <h3>Tariff Intelligence</h3>
-          <p>Stay ahead of price increases by tracking tariffs and supply chain disruptions that affect grocery costs.</p>
+          <p>Stay ahead of price increases by tracking tariffs and supply chain disruptions.</p>
         </div>
-
         <div class="about-feature">
-          <div class="feature-icon" aria-hidden="true">
-            <i class="fa-solid fa-heart"></i>
-          </div>
+          <div class="feature-icon"><i class="fa-solid fa-heart"></i></div>
           <h3>Health Scores</h3>
-          <p>Our proprietary health score (0-100) indicates product price stability, helping you make informed purchasing decisions.</p>
+          <p>Our proprietary health score (0-100) indicates product price stability.</p>
         </div>
-
         <div class="about-feature">
-          <div class="feature-icon" aria-hidden="true">
-            <i class="fa-solid fa-store"></i>
-          </div>
+          <div class="feature-icon"><i class="fa-solid fa-store"></i></div>
           <h3>Store Locator</h3>
-          <p>Find the best prices at stores near you with our interactive map and price comparison tools.</p>
+          <p>Find the best prices at stores near you with our interactive map.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Core JavaScript utilities -->
-  <script src="../static/js/main.js"></script>
+  <script src="/static/js/main.js"></script>
+  <script>
+    // Redirect if already logged in
+    if (localStorage.getItem("access_token")) {
+      window.location.href = "/products.html";
+    }
+
+    document.getElementById("login-btn").addEventListener("click", async () => {
+      const email   = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const errorEl  = document.getElementById("login-error");
+      const btn      = document.getElementById("login-btn");
+
+      errorEl.style.display = "none";
+      if (!email || !password) {
+        errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Please enter your email and password.';
+        errorEl.style.display = "flex";
+        return;
+      }
+
+      btn.textContent = "Signing in...";
+      btn.classList.add("btn-loading");
+
+      try {
+        // OAuth2 requires form-encoded data with "username" field
+        const formData = new URLSearchParams();
+        formData.append("username", email);
+        formData.append("password", password);
+
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formData.toString(),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.detail || "Invalid email or password.");
+        }
+
+        const data = await res.json();
+        localStorage.setItem("access_token", data.token.access_token);
+        localStorage.setItem("user_email", data.user.email);
+        if (data.user.full_name) localStorage.setItem("user_name", data.user.full_name);
+
+        window.location.href = "/products.html";
+
+      } catch (err) {
+        errorEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${err.message}`;
+        errorEl.style.display = "flex";
+      } finally {
+        btn.textContent = "Sign In";
+        btn.classList.remove("btn-loading");
+      }
+    });
+
+    ["email", "password"].forEach((id) => {
+      document.getElementById(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") document.getElementById("login-btn").click();
+      });
+    });
+    function togglePassword(id, btn) {
+      const input = document.getElementById(id);
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      btn.innerHTML = isHidden ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+    }
+  </script>
 </body>
 </html>

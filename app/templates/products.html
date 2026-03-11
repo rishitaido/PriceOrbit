@@ -6,14 +6,8 @@
   <title>PriceOrbit - Tracked Products</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-  <!-- FastAPI (when deploying) -->
   <link rel="stylesheet" href="/static/css/main.css"> 
   
-
-  <!-- Live Server 
-   <link rel="stylesheet" href="../static/css/main.css" /> -->
-
 
 </head>
 
@@ -59,7 +53,7 @@
         </li>
 
         <li>
-          <a href="#store-locator">
+          <a href="/stores">
             <span class="icon"><i class="fa-solid fa-store"></i></span>
             <span class="text">Store Locator</span>
           </a>
@@ -76,6 +70,12 @@
           <a href="#settings">
             <span class="icon"><i class="fa-solid fa-gear"></i></span>
             <span class="text">Settings</span>
+          </a>
+        </li>
+        <li style="margin-top: auto; padding-top: 16px; border-top: 1px solid #eee;">
+          <a href="#" id="logout-btn" onclick="logout()" style="color: #dc2626;">
+            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+            <span class="text">Logout</span>
           </a>
         </li>
       </ul>
@@ -212,6 +212,14 @@
   </div>
 
   <!-- Core JavaScript utilities (loaded first) -->
+  <script>
+    function logout() {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("user_name");
+      window.location.href = "/";
+    }
+  </script>
   <script src="/static/js/main.js"></script>
   <!-- Product-specific functionality -->
   <script src="/static/js/products.js"></script>

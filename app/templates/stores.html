@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceOrbit - Store Locator</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/stores.css">
+</head>
+
+<body>
+  <!-- Top Header Bar -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <img src="../static/images/logo.png" alt="PriceOrbit Logo">
+      </div>
+      <div class="topbar-right">
+        <div class="search-container">
+          <i class="fa-solid fa-search"></i>
+          <input type="text" id="store-search" placeholder="Search stores..." />
+        </div>
+        <a href="/docs" class="btn-api-docs" target="_blank" title="View API Documentation">
+          <i class="fa-solid fa-code"></i> API Docs
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar + Content -->
+  <div class="layout">
+    <aside class="sidebar">
+      <ul>
+        <li>
+          <a href="/products.html">
+            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+            <span class="text">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="/products.html">
+            <span class="icon"><i class="fa-solid fa-box"></i></span>
+            <span class="text">Tracked Products</span>
+          </a>
+        </li>
+        <li>
+          <a href="/stores" class="active">
+            <span class="icon"><i class="fa-solid fa-store"></i></span>
+            <span class="text">Store Locator</span>
+          </a>
+        </li>
+        <li>
+          <a href="#alerts">
+            <span class="icon"><i class="fa-solid fa-bell"></i></span>
+            <span class="text">Alerts</span>
+          </a>
+        </li>
+        <li>
+          <a href="#settings">
+            <span class="icon"><i class="fa-solid fa-gear"></i></span>
+            <span class="text">Settings</span>
+          </a>
+        </li>
+        <li style="margin-top: auto; padding-top: 16px; border-top: 1px solid #eee;">
+          <a href="#" id="logout-btn" onclick="logout()" style="color: #dc2626;">
+            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+            <span class="text">Logout</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-header">
+        <h1>Store Locator</h1>
+        <p>Find Kroger locations and compare prices near you</p>
+      </div>
+
+      <!-- Stats row -->
+      <div class="dashboard-stats" style="margin-bottom: 20px;">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #5dd1ab;">
+            <i class="fa-solid fa-store"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Stores Loaded</p>
+            <p class="stat-value" id="stat-stores">0</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #3b82f6;">
+            <i class="fa-solid fa-location-dot"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Nearby (10 mi)</p>
+            <p class="stat-value" id="stat-nearby">—</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #f59e0b;">
+            <i class="fa-solid fa-route"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Closest Store</p>
+            <p class="stat-value" id="stat-closest" style="font-size: 14px; padding-top: 4px;">—</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map + List layout -->
+      <div class="stores-layout">
+
+        <!-- Left: store list -->
+        <div class="stores-panel">
+
+          <div class="stores-panel-header">
+            <span id="store-count-label">Loading stores...</span>
+            <button id="btn-use-location" class="btn-locate" title="Use my location">
+              <i class="fa-solid fa-location-crosshairs"></i> Near Me
+            </button>
+          </div>
+
+          <!-- ZIP code search -->
+          <div class="zip-search-wrap">
+            <div class="zip-input-row">
+              <div class="search-container" style="flex:1;">
+                <i class="fa-solid fa-map-pin"></i>
+                <input type="text" id="zip-input" placeholder="Enter ZIP code..." maxlength="5" />
+              </div>
+              <button id="btn-zip-search" class="btn-locate" style="white-space:nowrap;">
+                <i class="fa-solid fa-magnifying-glass"></i> Search
+              </button>
+            </div>
+            <p id="zip-error" class="zip-error" style="display:none;">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              <span id="zip-error-text"></span>
+            </p>
+          </div>
+
+          <!-- Loading -->
+          <div id="stores-loading" class="loading-state">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Loading stores...</p>
+          </div>
+
+          <!-- Error -->
+          <div id="stores-error" class="error-state" style="display:none;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <p id="stores-error-text">Could not load stores.</p>
+          </div>
+
+          <!-- Store cards -->
+          <div id="stores-list" class="stores-list"></div>
+        </div>
+
+        <!-- Right: map -->
+        <div class="map-container">
+          <div id="map"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    function logout() {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("user_name");
+      window.location.href = "/";
+    }
+  </script>
+  <script src="/static/js/main.js"></script>
+  <script src="/static/js/stores.js"></script>
+</body>
+</html>

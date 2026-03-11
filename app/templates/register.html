@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceOrbit - Sign Up</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/main.css">
+
+  <style>
+    .auth-message {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .auth-error   { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+    .auth-success { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+    .btn-loading  { opacity: 0.7; pointer-events: none; }
+
+    .register-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      background-color: #f5f5f5;
+    }
+
+    .register-card {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .register-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .register-header .logo img {
+      height: 50px;
+      margin-bottom: 16px;
+    }
+
+    .register-header h1 {
+      font-size: 26px;
+      color: #111;
+      margin-bottom: 6px;
+    }
+
+    .register-header p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .password-hint {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 20px 0;
+    }
+    .password-wrap { position: relative; }
+    .password-wrap input { width: 100%; padding-right: 40px; }
+    .toggle-password {
+      position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: #999; font-size: 14px; padding: 0;
+    }
+    .toggle-password:hover { color: #555; }
+  </style>
+</head>
+
+<body>
+  <div class="register-page">
+    <div class="register-card">
+
+      <div class="register-header">
+        <div class="logo">
+          <img src="/static/images/logo.png" alt="PriceOrbit Logo">
+        </div>
+        <h1>Create Account</h1>
+        <p>Start tracking grocery prices today</p>
+      </div>
+
+      <div id="register-error" class="auth-message auth-error" style="display:none;"></div>
+      <div id="register-success" class="auth-message auth-success" style="display:none;"></div>
+
+      <div class="form-group">
+        <label for="full-name">Full Name <span style="color:#999; font-weight:400;">(optional)</span></label>
+        <input type="text" id="full-name" placeholder="Enter your full name">
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="Enter your email" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-wrap">
+          <input type="password" id="password" placeholder="At least 8 characters" required>
+          <button type="button" class="toggle-password" onclick="togglePassword('password', this)"><i class="fa-solid fa-eye"></i></button>
+        </div>
+        <p class="password-hint">Must be at least 8 characters</p>
+      </div>
+
+      <div class="form-group">
+        <label for="confirm-password">Confirm Password</label>
+        <div class="password-wrap">
+          <input type="password" id="confirm-password" placeholder="Re-enter your password" required>
+          <button type="button" class="toggle-password" onclick="togglePassword('confirm-password', this)"><i class="fa-solid fa-eye"></i></button>
+        </div>
+      </div>
+
+      <button type="button" id="register-btn" style="
+        width: 100%;
+        padding: 14px;
+        background: #5dd1ab;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-bottom: 16px;
+        transition: opacity 0.2s;
+      ">Create Account</button>
+
+      <hr class="divider">
+
+      <p class="signup-link" style="text-align:center;">
+        Already have an account? <a href="/">Sign in</a>
+      </p>
+
+    </div>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+  <script>
+    // Redirect if already logged in
+    if (localStorage.getItem("access_token")) {
+      window.location.href = "/products.html";
+    }
+
+    document.getElementById("register-btn").addEventListener("click", async () => {
+      const fullName        = document.getElementById("full-name").value.trim();
+      const email           = document.getElementById("email").value.trim();
+      const password        = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirm-password").value;
+
+      const errorEl   = document.getElementById("register-error");
+      const successEl = document.getElementById("register-success");
+      const btn       = document.getElementById("register-btn");
+
+      errorEl.style.display   = "none";
+      successEl.style.display = "none";
+
+      // Validation
+      if (!email || !password || !confirmPassword) {
+        errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Please fill in all required fields.';
+        errorEl.style.display = "flex";
+        return;
+      }
+
+      if (password.length < 8) {
+        errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Password must be at least 8 characters.';
+        errorEl.style.display = "flex";
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Passwords do not match.';
+        errorEl.style.display = "flex";
+        return;
+      }
+
+      btn.textContent = "Creating account...";
+      btn.classList.add("btn-loading");
+
+      try {
+        const payload = { email, password };
+        if (fullName) payload.full_name = fullName;
+
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const msg  = data?.detail || "Registration failed. Please try again.";
+          throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+        }
+
+        // Success — show message then redirect to login
+        successEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Account created! Redirecting to login...';
+        successEl.style.display = "flex";
+
+        setTimeout(() => { window.location.href = "/"; }, 1500);
+
+      } catch (err) {
+        errorEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${err.message}`;
+        errorEl.style.display = "flex";
+      } finally {
+        btn.textContent = "Create Account";
+        btn.classList.remove("btn-loading");
+      }
+    });
+
+    // Enter key support
+    ["full-name", "email", "password", "confirm-password"].forEach((id) => {
+      document.getElementById(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") document.getElementById("register-btn").click();
+      });
+    });
+    function togglePassword(id, btn) {
+      const input = document.getElementById(id);
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      btn.innerHTML = isHidden ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+    }
+  </script>
+</body>
+</html>

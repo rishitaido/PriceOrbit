@@ -3,6 +3,220 @@
    Extends main.css design system
 ========================= */
 
+/* =========================
+   FIND IN STORES BUTTON
+========================= */
+.btn-find-stores {
+  background: #5dd1ab;
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(93, 209, 171, 0.25);
+}
+
+.btn-find-stores:hover {
+  background: #4bc199;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(93, 209, 171, 0.35);
+}
+
+/* =========================
+   STORE PRICE MAP MODAL
+========================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.modal-title i {
+  color: #5dd1ab;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #666;
+}
+
+.modal-close {
+  background: #f3f4f6;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #666;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: #e5e7eb;
+  color: #111;
+}
+
+/* Legend bar */
+.map-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  border-bottom: 1px solid #eee;
+  background: #f8f9fa;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-green  { background: #16a34a; }
+.legend-yellow { background: #eab308; }
+.legend-red    { background: #dc2626; }
+
+#modal-loading-icon { color: #999; font-size: 13px; }
+#modal-store-count  { font-size: 13px; color: #666; font-weight: 600; }
+
+/* Modal body: map + list side by side */
+.modal-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#store-price-map {
+  flex: 1;
+  min-height: 400px;
+}
+
+.modal-store-list {
+  width: 280px;
+  min-width: 280px;
+  overflow-y: auto;
+  border-left: 1px solid #eee;
+}
+
+.modal-store-list::-webkit-scrollbar { width: 4px; }
+.modal-store-list::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+
+/* Store price row in modal */
+.store-price-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.store-price-row:hover { background: #f8f9fa; }
+.store-price-row.active { background: #f0fdf8; border-left: 3px solid #5dd1ab; }
+
+.store-price-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.store-price-info { flex: 1; min-width: 0; }
+
+.store-price-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.store-price-addr {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 1px;
+}
+
+.store-price-tag {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.price-green  { color: #16a34a; }
+.price-yellow { color: #ca8a04; }
+.price-red    { color: #dc2626; }
+
+/* Responsive modal */
+@media (max-width: 700px) {
+  .modal-body { flex-direction: column; }
+  .modal-store-list { width: 100%; min-width: unset; border-left: none; border-top: 1px solid #eee; max-height: 200px; }
+  #store-price-map { min-height: 280px; }
+}
+
 /* Back Navigation */
 .back-nav {
   margin-bottom: 20px;
