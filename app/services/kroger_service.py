@@ -419,6 +419,118 @@ class KrogerService:
         )
         return result
 
+    @staticmethod
+    def _parse_store(location: dict) -> dict:
+        """Flatten a single Kroger /v1/locations entry into a tidy dict."""
+        address = location.get("address", {})
+        geolocation = location.get("geolocation", {})
+        hours = location.get("hours", {})
+
+        return {
+            "location_id": location.get("locationId"),
+            "name": location.get("name"),
+            "chain": location.get("chain"),
+            "phone": location.get("phone"),
+            "address": {
+                "line1": address.get("addressLine1"),
+                "city": address.get("city"),
+                "state": address.get("state"),
+                "zip_code": address.get("zipCode"),
+                "county": address.get("county"),
+            },
+            "geolocation": {
+                "lat": geolocation.get("latitude"),
+                "lng": geolocation.get("longitude"),
+            },
+            "hours": {
+                "open_24": hours.get("open24"),
+                "monday": hours.get("monday"),
+                "tuesday": hours.get("tuesday"),
+                "wednesday": hours.get("wednesday"),
+                "thursday": hours.get("thursday"),
+                "friday": hours.get("friday"),
+                "saturday": hours.get("saturday"),
+                "sunday": hours.get("sunday"),
+            },
+            "departments": [
+                d.get("name") for d in location.get("departments", []) if d.get("name")
+            ],
+        }
+
+    async def search_stores(
+        self,
+        zip_code: str,
+        *,
+        limit: int = 10,
+        radius: int = 10,
+    ) -> list[dict]:
+        """Return stores near a ZIP code.
+
+        Args:
+            zip_code: 5-digit US ZIP code.
+            limit: Max results (1–200). Defaults to 10.
+            radius: Search radius in miles (1–100). Defaults to 10.
+        """
+        zip_code = zip_code.strip()
+        if not zip_code:
+            raise ValueError("zip_code is required.")
+
+        cache_key = f"stores:zip:{zip_code}:{limit}:{radius}"
+        if self.use_cache and (cached := _cache_get(cache_key)):
+            return cached
+
+        params: dict[str, Any] = {
+            "filter.zipCode.near": zip_code,
+            "filter.limit": max(1, min(limit, 200)),
+            "filter.radiusInMiles": max(1, min(radius, 100)),
+        }
+
+        data = await self._request("GET", "/locations", params=params)
+        stores = [self._parse_store(loc) for loc in data.get("data", [])]
+
+        if self.use_cache:
+            _cache_set(cache_key, stores)
+
+        logger.info("search_stores(zip=%s) -> %d results", zip_code, len(stores))
+        return stores
+
+    async def search_stores_by_coords(
+        self,
+        lat: float,
+        lng: float,
+        *,
+        limit: int = 10,
+        radius: int = 10,
+    ) -> list[dict]:
+        """Return stores near a lat/lng coordinate pair.
+
+        Args:
+            lat: Latitude in decimal degrees.
+            lng: Longitude in decimal degrees.
+            limit: Max results (1–200). Defaults to 10.
+            radius: Search radius in miles (1–100). Defaults to 10.
+        """
+        cache_key = f"stores:coords:{lat}:{lng}:{limit}:{radius}"
+        if self.use_cache and (cached := _cache_get(cache_key)):
+            return cached
+
+        params: dict[str, Any] = {
+            "filter.latLong.near": f"{lat},{lng}",
+            "filter.limit": max(1, min(limit, 200)),
+            "filter.radiusInMiles": max(1, min(radius, 100)),
+        }
+
+        data = await self._request("GET", "/locations", params=params)
+        stores = [self._parse_store(loc) for loc in data.get("data", [])]
+
+        if self.use_cache:
+            _cache_set(cache_key, stores)
+
+        logger.info(
+            "search_stores_by_coords(lat=%s, lng=%s) -> %d results", lat, lng, len(stores)
+        )
+        return stores
+
     def clear_cache(self) -> None:
         _response_cache.clear()
         logger.info("Response cache cleared.")
