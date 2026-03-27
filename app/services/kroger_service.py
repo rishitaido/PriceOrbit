@@ -366,8 +366,14 @@ class KrogerService:
         """Return full Kroger payload for a specific Kroger product ID."""
         return await self.get_product_by_id(kroger_product_id, location_id=location_id)
 
-    async def get_product_price(self, product_name: str) -> dict:
-        cache_key = f"price:{product_name}:{self.location_id}"
+    async def get_product_price(
+        self,
+        product_name: str,
+        *,
+        location_id: Optional[str] = None,
+    ) -> dict:
+        effective_location_id = (location_id or self.location_id).strip()
+        cache_key = f"price:{product_name}:{effective_location_id}"
         if self.use_cache and (cached := _cache_get(cache_key)):
             return cached
 
@@ -398,6 +404,7 @@ class KrogerService:
             "size": item.get("size"),
             "soldBy": item.get("soldBy"),
             "stockLevel": inventory_block.get("stockLevel"),
+            "location_id": effective_location_id,
             "price": _extract_price(item.get("price", {})),
             "nationalPrice": _extract_price(item.get("nationalPrice", {})),
             "fulfillment": {
@@ -412,13 +419,68 @@ class KrogerService:
             _cache_set(cache_key, result)
 
         logger.info(
-            "get_product_price('%s') -> %s @ $%s",
+            "get_product_price('%s', location_id='%s') -> %s @ $%s",
             product_name,
+            effective_location_id,
             result["description"],
             result["price"].get("regular"),
         )
         return result
 
+    async def get_product_price_by_location(
+        self,
+        kroger_product_id: str,
+        location_id: Optional[str] = None,
+    ) -> dict:
+        """Fetch price for a specific Kroger product ID at a specific location.
+
+        Used when the caller already has the Kroger product ID and wants to
+        save the result to the ProductStorePrice table.
+
+        Args:
+            kroger_product_id: 13-digit Kroger product ID.
+            location_id: Kroger location ID. Falls back to self.location_id.
+
+        Returns:
+            dict with keys: kroger_product_id, location_id, regular_price,
+            promo_price, description.
+        """
+        effective_location_id = (location_id or self.location_id).strip()
+        cache_key = f"price_by_loc:{kroger_product_id}:{effective_location_id}"
+        if self.use_cache and (cached := _cache_get(cache_key)):
+            return cached
+
+        data = await self._request(
+            "GET",
+            f"/products/{kroger_product_id}",
+            params={"filter.locationId": effective_location_id},
+        )
+
+        product = data.get("data", {})
+        items: list[dict] = product.get("items", [])
+        item = items[0] if items else {}
+        price_block = item.get("price", {})
+
+        result = {
+            "kroger_product_id": kroger_product_id,
+            "location_id": effective_location_id,
+            "description": product.get("description"),
+            "regular_price": price_block.get("regular"),
+            "promo_price": price_block.get("promo"),
+        }
+
+        if self.use_cache:
+            _cache_set(cache_key, result)
+
+        logger.info(
+            "get_product_price_by_location(product=%s, location=%s) -> $%s",
+            kroger_product_id,
+            effective_location_id,
+            result["regular_price"],
+        )
+        return result
+
     def clear_cache(self) -> None:
         _response_cache.clear()
+        logger.info("Response cache cleared.")
         logger.info("Response cache cleared.")
