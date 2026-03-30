@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import time
 from difflib import SequenceMatcher
@@ -250,6 +251,160 @@ class KrogerService:
         return products
 
     @staticmethod
+    def _coerce_float(value: Any) -> Optional[float]:
+        try:
+            if value is None:
+                return None
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _format_hours(hours_payload: Any) -> Optional[str]:
+        if not hours_payload:
+            return None
+        if isinstance(hours_payload, str):
+            return hours_payload
+        if isinstance(hours_payload, dict):
+            return json.dumps(hours_payload, separators=(",", ":"), sort_keys=True)
+        if isinstance(hours_payload, list):
+            return json.dumps(hours_payload, separators=(",", ":"))
+        return str(hours_payload)
+
+    @staticmethod
+    def _extract_phone(location_payload: dict) -> Optional[str]:
+        phone = location_payload.get("phone")
+        if isinstance(phone, str):
+            return phone
+        if isinstance(phone, dict):
+            return str(phone.get("number") or phone.get("value") or "").strip() or None
+        if isinstance(phone, list) and phone:
+            first = phone[0]
+            if isinstance(first, str):
+                return first
+            if isinstance(first, dict):
+                return str(first.get("number") or first.get("value") or "").strip() or None
+        return None
+
+    @classmethod
+    def _parse_location(cls, location_payload: dict) -> Optional[dict]:
+        address_payload = location_payload.get("address") or {}
+        geolocation_payload = (
+            location_payload.get("geolocation")
+            or location_payload.get("geoLocation")
+            or {}
+        )
+
+        latitude = cls._coerce_float(geolocation_payload.get("latitude"))
+        longitude = cls._coerce_float(geolocation_payload.get("longitude"))
+        if latitude is None or longitude is None:
+            return None
+
+        return {
+            "kroger_location_id": str(location_payload.get("locationId") or "").strip() or None,
+            "name": str(location_payload.get("name") or "Kroger").strip() or "Kroger",
+            "address": str(address_payload.get("addressLine1") or "").strip() or "Unknown Address",
+            "city": str(address_payload.get("city") or "").strip() or "Unknown",
+            "state": str(address_payload.get("state") or "").strip() or "NA",
+            "zip_code": str(address_payload.get("zipCode") or "").strip() or "00000",
+            "latitude": latitude,
+            "longitude": longitude,
+            "phone": cls._extract_phone(location_payload),
+            "hours": cls._format_hours(location_payload.get("hours")),
+        }
+
+    @classmethod
+    def _parse_locations_response(cls, payload: list[dict]) -> list[dict]:
+        stores: list[dict] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            store = cls._parse_location(item)
+            if store is not None:
+                stores.append(store)
+        return stores
+
+    async def search_stores(
+        self,
+        zip_code: str,
+        *,
+        radius_miles: float = 25.0,
+        limit: int = 20,
+    ) -> list[dict]:
+        normalized_zip = (zip_code or "").strip()
+        if not normalized_zip.isdigit() or len(normalized_zip) != 5:
+            raise ValueError("zip_code must be a 5-digit string.")
+        if radius_miles <= 0:
+            raise ValueError("radius_miles must be greater than zero.")
+
+        bounded_limit = max(1, min(limit, 200))
+        radius_value = int(radius_miles) if float(radius_miles).is_integer() else round(radius_miles, 2)
+        cache_key = f"stores:zip:{normalized_zip}:{radius_miles}:{bounded_limit}"
+        if self.use_cache and (cached := _cache_get(cache_key)):
+            return cached
+
+        params: dict[str, Any] = {
+            "filter.zipCode.near": normalized_zip,
+            "filter.radiusInMiles": radius_value,
+            "filter.limit": bounded_limit,
+        }
+        data = await self._request("GET", "/locations", params=params)
+        stores = self._parse_locations_response(data.get("data", []))
+
+        if self.use_cache:
+            _cache_set(cache_key, stores)
+
+        logger.info(
+            "search_stores(zip_code=%s, radius_miles=%s) -> %s stores",
+            normalized_zip,
+            radius_miles,
+            len(stores),
+        )
+        return stores
+
+    async def search_stores_by_coords(
+        self,
+        latitude: float,
+        longitude: float,
+        *,
+        radius_miles: float = 25.0,
+        limit: int = 20,
+    ) -> list[dict]:
+        if latitude < -90 or latitude > 90:
+            raise ValueError("latitude must be between -90 and 90.")
+        if longitude < -180 or longitude > 180:
+            raise ValueError("longitude must be between -180 and 180.")
+        if radius_miles <= 0:
+            raise ValueError("radius_miles must be greater than zero.")
+
+        bounded_limit = max(1, min(limit, 200))
+        radius_value = int(radius_miles) if float(radius_miles).is_integer() else round(radius_miles, 2)
+        cache_key = f"stores:coords:{latitude:.5f}:{longitude:.5f}:{radius_miles}:{bounded_limit}"
+        if self.use_cache and (cached := _cache_get(cache_key)):
+            return cached
+
+        params: dict[str, Any] = {
+            "filter.lat.near": round(latitude, 6),
+            "filter.lon.near": round(longitude, 6),
+            "filter.radiusInMiles": radius_value,
+            "filter.limit": bounded_limit,
+        }
+        data = await self._request("GET", "/locations", params=params)
+        stores = self._parse_locations_response(data.get("data", []))
+
+        if self.use_cache:
+            _cache_set(cache_key, stores)
+
+        logger.info(
+            "search_stores_by_coords(lat=%s, lng=%s, radius_miles=%s) -> %s stores",
+            latitude,
+            longitude,
+            radius_miles,
+            len(stores),
+        )
+        return stores
+
+    @staticmethod
     def _extract_image_url(product_payload: dict) -> Optional[str]:
         images = product_payload.get("images") or []
         if not images:
@@ -366,47 +521,31 @@ class KrogerService:
         """Return full Kroger payload for a specific Kroger product ID."""
         return await self.get_product_by_id(kroger_product_id, location_id=location_id)
 
-    async def get_product_price(
-        self,
-        product_name: str,
-        *,
-        location_id: Optional[str] = None,
-    ) -> dict:
-        effective_location_id = (location_id or self.location_id).strip()
-        cache_key = f"price:{product_name}:{effective_location_id}"
-        if self.use_cache and (cached := _cache_get(cache_key)):
-            return cached
+    @staticmethod
+    def _extract_price_block(block: dict) -> dict:
+        return {
+            "regular": block.get("regular"),
+            "promo": block.get("promo"),
+            "regularPerUnitEstimate": block.get("regularPerUnitEstimate"),
+            "promoPerUnitEstimate": block.get("promoPerUnitEstimate"),
+        }
 
-        products = await self.search_products(product_name, limit=1)
-
-        if not products:
-            raise KrogerAPIError(f"No products found for '{product_name}'.")
-
-        product = products[0]
+    def _build_product_price_result(self, product: dict, effective_location_id: str) -> dict:
         items: list[dict] = product.get("items", [])
         item = items[0] if items else {}
-
-        def _extract_price(block: dict) -> dict:
-            return {
-                "regular": block.get("regular"),
-                "promo": block.get("promo"),
-                "regularPerUnitEstimate": block.get("regularPerUnitEstimate"),
-                "promoPerUnitEstimate": block.get("promoPerUnitEstimate"),
-            }
-
         fulfillment_block = item.get("fulfillment", {})
         inventory_block = item.get("inventory", {})
 
-        result = {
+        return {
             "productId": product.get("productId"),
             "description": product.get("description"),
             "brand": product.get("brand"),
+            "locationId": effective_location_id,
             "size": item.get("size"),
             "soldBy": item.get("soldBy"),
             "stockLevel": inventory_block.get("stockLevel"),
-            "location_id": effective_location_id,
-            "price": _extract_price(item.get("price", {})),
-            "nationalPrice": _extract_price(item.get("nationalPrice", {})),
+            "price": self._extract_price_block(item.get("price", {})),
+            "nationalPrice": self._extract_price_block(item.get("nationalPrice", {})),
             "fulfillment": {
                 "instore": fulfillment_block.get("instore"),
                 "curbside": fulfillment_block.get("curbside"),
@@ -415,72 +554,53 @@ class KrogerService:
             },
         }
 
+    async def get_product_price(
+        self,
+        product_identifier: str,
+        location_id: Optional[str] = None,
+    ) -> dict:
+        """
+        Return product pricing details.
+
+        - If ``location_id`` is provided, ``product_identifier`` is treated as
+          a Kroger product ID and fetched from ``GET /v1/products/{id}``.
+        - Otherwise, ``product_identifier`` is treated as a search term and the
+          first matching product is returned (legacy behavior).
+        """
+        effective_location_id = (location_id or self.location_id).strip()
+        cache_key = f"price:{product_identifier}:{effective_location_id}"
+        if self.use_cache and (cached := _cache_get(cache_key)):
+            return cached
+
+        if location_id:
+            product = await self.get_product_by_id(
+                str(product_identifier).strip(),
+                location_id=effective_location_id,
+            )
+            result = self._build_product_price_result(product, effective_location_id)
+        else:
+            products = await self.search_products(product_identifier, limit=1)
+            if not products:
+                raise KrogerAPIError(f"No products found for '{product_identifier}'.")
+            product = products[0]
+            result = self._build_product_price_result(product, effective_location_id)
+
         if self.use_cache:
             _cache_set(cache_key, result)
 
         logger.info(
             "get_product_price('%s', location_id='%s') -> %s @ $%s",
-            product_name,
+            product_identifier,
             effective_location_id,
             result["description"],
             result["price"].get("regular"),
         )
         return result
 
-    async def get_product_price_by_location(
-        self,
-        kroger_product_id: str,
-        location_id: Optional[str] = None,
-    ) -> dict:
-        """Fetch price for a specific Kroger product ID at a specific location.
-
-        Used when the caller already has the Kroger product ID and wants to
-        save the result to the ProductStorePrice table.
-
-        Args:
-            kroger_product_id: 13-digit Kroger product ID.
-            location_id: Kroger location ID. Falls back to self.location_id.
-
-        Returns:
-            dict with keys: kroger_product_id, location_id, regular_price,
-            promo_price, description.
-        """
-        effective_location_id = (location_id or self.location_id).strip()
-        cache_key = f"price_by_loc:{kroger_product_id}:{effective_location_id}"
-        if self.use_cache and (cached := _cache_get(cache_key)):
-            return cached
-
-        data = await self._request(
-            "GET",
-            f"/products/{kroger_product_id}",
-            params={"filter.locationId": effective_location_id},
-        )
-
-        product = data.get("data", {})
-        items: list[dict] = product.get("items", [])
-        item = items[0] if items else {}
-        price_block = item.get("price", {})
-
-        result = {
-            "kroger_product_id": kroger_product_id,
-            "location_id": effective_location_id,
-            "description": product.get("description"),
-            "regular_price": price_block.get("regular"),
-            "promo_price": price_block.get("promo"),
-        }
-
-        if self.use_cache:
-            _cache_set(cache_key, result)
-
-        logger.info(
-            "get_product_price_by_location(product=%s, location=%s) -> $%s",
-            kroger_product_id,
-            effective_location_id,
-            result["regular_price"],
-        )
-        return result
+    async def get_product_price_by_location(self, product_id: str, location_id: str) -> dict:
+        """Compatibility helper for explicit store-location lookups."""
+        return await self.get_product_price(product_id, location_id=location_id)
 
     def clear_cache(self) -> None:
         _response_cache.clear()
-        logger.info("Response cache cleared.")
         logger.info("Response cache cleared.")

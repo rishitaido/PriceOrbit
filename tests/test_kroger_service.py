@@ -103,6 +103,23 @@ SAMPLE_PRODUCT = {
     ],
 }
 
+SAMPLE_LOCATION = {
+    "locationId": "01400943",
+    "name": "Kroger Midtown",
+    "address": {
+        "addressLine1": "725 Ponce De Leon Ave",
+        "city": "Atlanta",
+        "state": "GA",
+        "zipCode": "30306",
+    },
+    "geolocation": {
+        "latitude": 33.7721,
+        "longitude": -84.3656,
+    },
+    "phone": {"number": "(404) 555-1212"},
+    "hours": {"timezone": "EST"},
+}
+
 
 # --- Authentication ---
 
@@ -281,6 +298,45 @@ async def test_get_product_by_id_passes_location(service: KrogerService):
     assert "filter.locationId" in params
 
 
+# --- store search ---
+
+@pytest.mark.asyncio
+async def test_search_stores_by_zip_returns_parsed_store(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+    service._http.request = AsyncMock(return_value=_mock_product_response([SAMPLE_LOCATION]))
+
+    stores = await service.search_stores("30303", radius_miles=10, limit=5)
+
+    assert len(stores) == 1
+    assert stores[0]["kroger_location_id"] == "01400943"
+    assert stores[0]["city"] == "Atlanta"
+    assert stores[0]["state"] == "GA"
+    assert stores[0]["zip_code"] == "30306"
+
+
+@pytest.mark.asyncio
+async def test_search_stores_by_coords_passes_correct_params(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+    service._http.request = AsyncMock(return_value=_mock_product_response([]))
+
+    await service.search_stores_by_coords(33.7490, -84.3880, radius_miles=12, limit=7)
+
+    call_kwargs = service._http.request.call_args
+    params = call_kwargs[1].get("params") or call_kwargs[0][2]
+    assert params["filter.lat.near"] == pytest.approx(33.7490, rel=1e-6)
+    assert params["filter.lon.near"] == pytest.approx(-84.3880, rel=1e-6)
+    assert params["filter.radiusInMiles"] == 12
+    assert params["filter.limit"] == 7
+
+
+@pytest.mark.asyncio
+async def test_search_stores_invalid_zip_raises(service: KrogerService):
+    with pytest.raises(ValueError, match="5-digit"):
+        await service.search_stores("3030A")
+
+
 # --- get_product_price ---
 
 @pytest.mark.asyncio
@@ -336,6 +392,21 @@ async def test_get_product_price_no_items_returns_empty_price(service: KrogerSer
         "regular": None, "promo": None,
         "regularPerUnitEstimate": None, "promoPerUnitEstimate": None,
     }
+
+
+@pytest.mark.asyncio
+async def test_get_product_price_by_location(service: KrogerService):
+    _token_store.access_token = "tok"
+    _token_store.expires_at = time.monotonic() + 3600
+    service._http.request = AsyncMock(
+        return_value=_mock_single_product_response(SAMPLE_PRODUCT)
+    )
+
+    result = await service.get_product_price_by_location("0001111060903", "01400943")
+
+    assert result["productId"] == SAMPLE_PRODUCT["productId"]
+    assert result["locationId"] == "01400943"
+    assert result["price"]["regular"] == 5.99
 
 
 # --- Error handling ---

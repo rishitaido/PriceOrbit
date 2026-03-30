@@ -133,6 +133,7 @@ function updateHealthScore(score) {
   const scoreText = document.getElementById("score-text");
   const scoreFill = document.getElementById("score-fill");
   const statusBadge = document.getElementById("health-status");
+  if (!scoreText || !scoreFill || !statusBadge) return;
 
   scoreText.textContent = Math.round(score);
   scoreFill.style.strokeDasharray = `${(score / 100) * 251.2} 251.2`;
@@ -484,7 +485,10 @@ async function openStoreMapModal(productId, productName, basePrice) {
       const priceRes = await fetch(`${PRICES_API_BASE}/${productId}/prices?store_ids=${storeIds}`);
       if (priceRes.ok) {
         const priceData = await priceRes.json();
-        priceData.forEach((p) => { priceMap[p.store_id] = p.price; });
+        const pricesArray = priceData?.prices || priceData;
+        (Array.isArray(pricesArray) ? pricesArray : []).forEach((p) => {
+          priceMap[p.store_id] = p.price;
+        });
       }
     } catch {
       // Prices API not ready yet — generate slight variations of base price
@@ -641,7 +645,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-  document.getElementById("detail-loading").style.display = "none";
-  document.getElementById("detail-error").style.display = "flex";
-  document.getElementById("detail-error-text").textContent = message || "Product not found";
-  document.getElementById("product-detail").style.display = "none";
+function showError(message) {
+  const loading = document.getElementById("detail-loading");
+  const error = document.getElementById("detail-error");
+  const errorText = document.getElementById("detail-error-text");
+  const detail = document.getElementById("product-detail");
+
+  if (loading) loading.style.display = "none";
+  if (error) error.style.display = "flex";
+  if (errorText) errorText.textContent = message || "Product not found";
+  if (detail) detail.style.display = "none";
+}

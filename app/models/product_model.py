@@ -7,6 +7,7 @@ from decimal import Decimal
 from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, DECIMAL, DateTime, JSON, Text
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.db.base import Base
@@ -65,6 +66,11 @@ class Product(Base):
         nullable=False
     )
     last_price_check = Column(DateTime(timezone=True), nullable=True)
+    store_prices = relationship(
+        "ProductStorePrice",
+        back_populates="product",
+        cascade="all, delete-orphan",
+    )
     
     def __repr__(self):
         """String representation for debugging"""

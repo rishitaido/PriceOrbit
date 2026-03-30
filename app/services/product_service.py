@@ -255,22 +255,35 @@ class ProductService:
         product_id: int,
         store_id: int,
         price: Decimal,
+        records_by_store_id: Optional[Dict[int, ProductStorePrice]] = None,
     ) -> ProductStorePrice:
-        record = (
-            self.db.query(ProductStorePrice)
-            .filter(
-                ProductStorePrice.product_id == product_id,
-                ProductStorePrice.store_id == store_id,
+        record = None
+        if records_by_store_id is not None:
+            record = records_by_store_id.get(store_id)
+        else:
+            record = (
+                self.db.query(ProductStorePrice)
+                .filter(
+                    ProductStorePrice.product_id == product_id,
+                    ProductStorePrice.store_id == store_id,
+                )
+                .first()
             )
-            .first()
-        )
 
         if record is None:
-            record = ProductStorePrice(product_id=product_id, store_id=store_id, price=price)
+            record = ProductStorePrice(
+                product_id=product_id,
+                store_id=store_id,
+                price=price,
+                last_updated=datetime.now(timezone.utc),
+            )
             self.db.add(record)
         else:
             record.price = price
             record.last_updated = datetime.now(timezone.utc)
+
+        if records_by_store_id is not None:
+            records_by_store_id[store_id] = record
 
         return record
 
@@ -402,6 +415,16 @@ class ProductService:
         if not stores:
             return {"product_id": product.id, "product_name": product.name, "prices": []}
 
+        records = (
+            self.db.query(ProductStorePrice)
+            .filter(
+                ProductStorePrice.product_id == product.id,
+                ProductStorePrice.store_id.in_([store.id for store in stores]),
+            )
+            .all()
+        )
+        records_by_store_id = {record.store_id: record for record in records}
+
         fetched_store_ids: set[int] = set()
         product_updated = False
 
@@ -422,18 +445,21 @@ class ProductService:
                         )
 
                 if product.kroger_product_id:
-                    for store in stores:
+                    concurrency_limit = 5
+                    semaphore = asyncio.Semaphore(concurrency_limit)
+
+                    async def fetch_one_store_price(store: Store) -> tuple[int, Decimal] | None:
                         if not store.kroger_location_id:
-                            continue
+                            return None
 
                         try:
-                            payload = await kroger.get_product_details(
-                                product.kroger_product_id,
-                                location_id=store.kroger_location_id,
-                            )
-                            price = self._extract_price_from_kroger_payload(payload)
-                            self._upsert_product_store_price(product.id, store.id, price)
-                            fetched_store_ids.add(store.id)
+                            async with semaphore:
+                                payload = await kroger.get_product_price_by_location(
+                                    product_id=product.kroger_product_id,
+                                    location_id=store.kroger_location_id,
+                                )
+                            price = self._extract_price_from_kroger_price_result(payload)
+                            return store.id, price
                         except (ExternalAPIError, KrogerAPIError, KrogerRateLimitError, ValueError) as exc:
                             logger.warning(
                                 "Store price lookup failed product_id=%s store_id=%s location=%s: %s",
@@ -442,19 +468,25 @@ class ProductService:
                                 store.kroger_location_id,
                                 exc,
                             )
+                            return None
+
+                    results = await asyncio.gather(
+                        *(fetch_one_store_price(store) for store in stores if store.kroger_location_id),
+                    )
+                    for result in results:
+                        if result is None:
+                            continue
+                        store_id, price = result
+                        self._upsert_product_store_price(
+                            product.id,
+                            store_id,
+                            price,
+                            records_by_store_id=records_by_store_id,
+                        )
+                        fetched_store_ids.add(store_id)
 
             if product_updated or fetched_store_ids:
                 self._commit_or_raise()
-
-        records = (
-            self.db.query(ProductStorePrice)
-            .filter(
-                ProductStorePrice.product_id == product.id,
-                ProductStorePrice.store_id.in_([store.id for store in stores]),
-            )
-            .all()
-        )
-        records_by_store_id = {record.store_id: record for record in records}
 
         prices: List[Dict[str, Any]] = []
         for store in stores:
@@ -698,6 +730,24 @@ class ProductService:
                 raise ExternalAPIError("Kroger", f"Invalid price value received: {raw_price}") from exc
 
         raise ExternalAPIError("Kroger", "No regular/promo price found for product.")
+
+    @staticmethod
+    def _extract_price_from_kroger_price_result(payload: Dict[str, Any]) -> Decimal:
+        price_block = payload.get("price") or {}
+        national_block = payload.get("nationalPrice") or {}
+        raw_price = (
+            price_block.get("regular")
+            or price_block.get("promo")
+            or national_block.get("regular")
+            or national_block.get("promo")
+        )
+        if raw_price is None:
+            raise ExternalAPIError("Kroger", "No regular/promo price found in store price response.")
+
+        try:
+            return Decimal(str(raw_price))
+        except Exception as exc:  # pragma: no cover - defensive guard
+            raise ExternalAPIError("Kroger", f"Invalid price value received: {raw_price}") from exc
 
     @staticmethod
     def _confidence(search_term: str, description: str) -> float:

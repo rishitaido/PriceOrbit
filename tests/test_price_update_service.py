@@ -45,7 +45,7 @@ async def test_update_price_from_kroger_success(db, monkeypatch):
             assert kroger_product_id == "0001111060903"
             return {"items": [{"price": {"regular": 3.25}}]}
 
-        async def find_kroger_product(self, product_name: str):
+        async def find_kroger_product(self, product_name: str, **kwargs):
             return None
 
     monkeypatch.setattr("app.services.product_service.KrogerService", FakeKrogerService)
@@ -85,7 +85,7 @@ async def test_update_price_finds_kroger_match_when_missing_id(db, monkeypatch):
             assert kroger_product_id == "0001111060903"
             return {"items": [{"price": {"regular": 0.69}}]}
 
-        async def find_kroger_product(self, product_name: str):
+        async def find_kroger_product(self, product_name: str, **kwargs):
             return {
                 "product_id": "0001111060903",
                 "confidence": 98.2,
@@ -129,7 +129,7 @@ async def test_update_price_raises_external_error_on_api_failure(db, monkeypatch
         async def get_product_details(self, kroger_product_id: str):
             raise KrogerAPIError("Kroger unavailable")
 
-        async def find_kroger_product(self, product_name: str):
+        async def find_kroger_product(self, product_name: str, **kwargs):
             return None
 
     monkeypatch.setattr("app.services.product_service.KrogerService", FakeKrogerService)
@@ -182,7 +182,7 @@ async def test_update_all_prices_respects_limit(db, monkeypatch):
                 return {"items": [{"price": {"regular": 2.50}}]}
             return {"items": [{"price": {"regular": 1.99}}]}
 
-        async def find_kroger_product(self, product_name: str):
+        async def find_kroger_product(self, product_name: str, **kwargs):
             return {
                 "product_id": "9999999999999",
                 "confidence": 90.0,

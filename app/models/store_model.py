@@ -5,6 +5,7 @@ Store SQLAlchemy model for grocery store locations.
 from __future__ import annotations
 
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.db.base import Base
@@ -35,6 +36,11 @@ class Store(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+    product_prices = relationship(
+        "ProductStorePrice",
+        back_populates="store",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
