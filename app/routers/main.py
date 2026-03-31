@@ -37,6 +37,15 @@ async def register(request: Request):
     )
 
 
+@router.get("/admin", response_class=HTMLResponse, tags=["pages"])
+async def admin(request: Request):
+    """Admin dashboard page"""
+    return templates.TemplateResponse(
+        "admin.html",
+        {"request": request, "title": "PriceOrbit - Admin"}
+    )
+
+
 @router.get("/stores", response_class=HTMLResponse, tags=["pages"])
 async def stores(request: Request):
     """Store locator map page"""

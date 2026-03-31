@@ -142,7 +142,7 @@ function createProductCard(product) {
       </div>
 
       <div class="product-actions">
-        <button class="btn-view-details" data-product-id="${product.id}">View Details</button>
+        <button class="btn-view-details" data-product-id="${product.id}">View Details <i class="fa-solid fa-arrow-right"></i></button>
       </div>
     </div>
   `;

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceOrbit - Admin Dashboard</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/mobile.css">
+
+  <style>
+    /* ── ADMIN-SPECIFIC STYLES ── */
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #111;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    /* ── TABLE ── */
+    .admin-table-wrap {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      margin-top: 8px;
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .admin-table th {
+      background: #f8f9fa;
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #666;
+      border-bottom: 1px solid #eee;
+      white-space: nowrap;
+    }
+
+    .admin-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #f3f4f6;
+      color: #111;
+      vertical-align: middle;
+    }
+
+    .admin-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .admin-table tr:hover td {
+      background: #fafafa;
+    }
+
+    /* inline edit inputs */
+    .inline-input {
+      width: 80px;
+      padding: 5px 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #111;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .inline-input:focus {
+      border-color: #5dd1ab;
+    }
+
+    .inline-select {
+      padding: 5px 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #111;
+      outline: none;
+      background: white;
+      cursor: pointer;
+    }
+
+    .inline-select:focus {
+      border-color: #5dd1ab;
+    }
+
+    /* save button per row */
+    .btn-save-row {
+      background: #5dd1ab;
+      color: white;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .btn-save-row:hover {
+      background: #4bc199;
+      transform: translateY(-1px);
+    }
+
+    .btn-save-row:disabled {
+      opacity: .6;
+      pointer-events: none;
+    }
+
+    /* update price button per row */
+    .btn-update-price {
+      background: #f3f4f6;
+      color: #111;
+      border: 1px solid #ddd;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .btn-update-price:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-update-price:disabled {
+      opacity: .5;
+      pointer-events: none;
+    }
+
+    /* health score badge */
+    .hs-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hs-green  { background: #dcfce7; color: #16a34a; }
+    .hs-yellow { background: #fef9c3; color: #ca8a04; }
+    .hs-red    { background: #fee2e2; color: #dc2626; }
+
+    /* save feedback */
+    .save-status {
+      font-size: 11px;
+      margin-left: 6px;
+    }
+
+    .save-ok  { color: #16a34a; }
+    .save-err { color: #dc2626; }
+
+    /* bulk update bar */
+    .bulk-bar {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    }
+
+    .bulk-bar span {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111;
+    }
+
+    .btn-bulk {
+      background: #111;
+      color: white;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity .2s;
+    }
+
+    .btn-bulk:hover { opacity: .85; }
+    .btn-bulk:disabled { opacity: .5; pointer-events: none; }
+
+    .btn-bulk.green {
+      background: #5dd1ab;
+    }
+
+    /* search + filter bar */
+    .admin-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .admin-controls .search-container {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .admin-controls .search-container input {
+      width: 100%;
+    }
+
+    /* responsive table */
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    @media (max-width: 900px) {
+      .admin-table th:nth-child(5),
+      .admin-table td:nth-child(5),
+      .admin-table th:nth-child(6),
+      .admin-table td:nth-child(6) {
+        display: none;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .admin-table th:nth-child(4),
+      .admin-table td:nth-child(4) {
+        display: none;
+      }
+      .bulk-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <img src="/static/images/logo.png" alt="PriceOrbit Logo">
+      </div>
+      <div class="topbar-right">
+        <span style="font-size:13px; color:#666; font-weight:600;">
+          <i class="fa-solid fa-shield-halved"></i> Admin Panel
+        </span>
+        <a href="/docs" class="btn-api-docs" target="_blank">
+          <i class="fa-solid fa-code"></i> API Docs
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <ul>
+        <li>
+          <a href="/products.html">
+            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+            <span class="text">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="/products.html">
+            <span class="icon"><i class="fa-solid fa-box"></i></span>
+            <span class="text">Tracked Products</span>
+          </a>
+        </li>
+        <li>
+          <a href="/stores">
+            <span class="icon"><i class="fa-solid fa-store"></i></span>
+            <span class="text">Store Locator</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin" class="active">
+            <span class="icon"><i class="fa-solid fa-shield-halved"></i></span>
+            <span class="text">Admin</span>
+          </a>
+        </li>
+        <li>
+          <a href="#alerts">
+            <span class="icon"><i class="fa-solid fa-bell"></i></span>
+            <span class="text">Alerts</span>
+          </a>
+        </li>
+        <li style="margin-top: auto; padding-top: 16px; border-top: 1px solid #eee;">
+          <a href="#" onclick="logout()" style="color: #dc2626;">
+            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+            <span class="text">Logout</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-header">
+        <h1>Admin Dashboard <span class="admin-badge"><i class="fa-solid fa-lock"></i> Admin</span></h1>
+        <p>Manage products, tariff data, and trigger price updates</p>
+      </div>
+
+      <!-- System Stats -->
+      <div class="dashboard-stats" style="margin-bottom: 20px;">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #3b82f6;">
+            <i class="fa-solid fa-box"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Total Products</p>
+            <p class="stat-value" id="stat-total">—</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #5dd1ab;">
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Avg Health Score</p>
+            <p class="stat-value" id="stat-health">—</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #ef4444;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">High Risk Items</p>
+            <p class="stat-value" id="stat-risk">—</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #f59e0b;">
+            <i class="fa-solid fa-tags"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Unmapped Products</p>
+            <p class="stat-value" id="stat-unmapped">—</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bulk Actions -->
+      <div class="bulk-bar">
+        <span><i class="fa-solid fa-bolt"></i> Bulk Actions</span>
+        <button class="btn-bulk green" id="btn-refresh-all" onclick="refreshAllPrices()">
+          <i class="fa-solid fa-rotate"></i> Refresh All Prices
+        </button>
+        <span id="bulk-status" style="font-size:13px; color:#666;"></span>
+      </div>
+
+      <!-- Search + Filter -->
+      <div class="admin-controls">
+        <div class="search-container">
+          <i class="fa-solid fa-search"></i>
+          <input type="text" id="admin-search" placeholder="Search products..." />
+        </div>
+        <div class="filter-group">
+          <select id="admin-category-filter">
+            <option value="all">All Categories</option>
+            <option value="Dairy & Eggs">Dairy & Eggs</option>
+            <option value="Pantry Staples">Pantry Staples</option>
+            <option value="Fresh Produce">Fresh Produce</option>
+            <option value="Meat & Seafood">Meat & Seafood</option>
+            <option value="Frozen Foods">Frozen Foods</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <select id="admin-risk-filter">
+            <option value="all">All Risk Levels</option>
+            <option value="low">Low Risk</option>
+            <option value="medium">Medium Risk</option>
+            <option value="high">High Risk</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="admin-loading" class="loading-state">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <p>Loading products...</p>
+      </div>
+
+      <!-- Error -->
+      <div id="admin-error" class="error-state" style="display:none;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p id="admin-error-text">Could not load products.</p>
+      </div>
+
+      <!-- Product Table -->
+      <div id="admin-table-wrap" class="admin-table-wrap" style="display:none;">
+        <div class="table-scroll">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Health Score</th>
+                <th>Tariff Rate</th>
+                <th>Import Dependency</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="controls-bar" style="justify-content: flex-end; margin-top: 16px;" id="admin-pagination" style="display:none;">
+        <button id="admin-prev" class="btn-api-docs" type="button">Previous</button>
+        <span id="admin-page-info" style="padding: 0 12px; font-weight: 600;">Page 1</span>
+        <button id="admin-next" class="btn-api-docs" type="button">Next</button>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+  <script>
+    function logout() {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user_email');
+      localStorage.removeItem('user_name');
+      window.location.href = '/';
+    }
+
+    const API = '/api/products';
+    let allProducts = [];
+    let filteredProducts = [];
+    let skip = 0;
+    const limit = 20;
+
+    // ── LOAD PRODUCTS ──────────────────────────────────────────────
+    async function loadProducts() {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API}?limit=100&skip=0`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        allProducts = data.products || [];
+        updateStats(allProducts, data.total || allProducts.length);
+        applyFilters();
+        setLoading(false);
+        document.getElementById('admin-table-wrap').style.display = 'block';
+        document.getElementById('admin-pagination').style.display = 'flex';
+      } catch (err) {
+        setLoading(false, err.message);
+      }
+    }
+
+    // ── STATS ──────────────────────────────────────────────────────
+    function updateStats(products, total) {
+      document.getElementById('stat-total').textContent = total;
+      const avg = products.length
+        ? Math.round(products.reduce((s, p) => s + Number(p.health_score || 0), 0) / products.length)
+        : 0;
+      document.getElementById('stat-health').textContent = avg;
+      document.getElementById('stat-risk').textContent = products.filter(p => Number(p.health_score) < 40).length;
+      document.getElementById('stat-unmapped').textContent = products.filter(p => !p.kroger_product_id).length;
+    }
+
+    // ── FILTERS ────────────────────────────────────────────────────
+    function applyFilters() {
+      const q        = document.getElementById('admin-search').value.toLowerCase();
+      const cat      = document.getElementById('admin-category-filter').value;
+      const risk     = document.getElementById('admin-risk-filter').value;
+
+      filteredProducts = allProducts.filter(p => {
+        const matchQ   = !q || p.name.toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q);
+        const matchCat = cat === 'all' || p.category === cat;
+        const score    = Number(p.health_score);
+        const matchRisk = risk === 'all'
+          || (risk === 'low'    && score >= 70)
+          || (risk === 'medium' && score >= 40 && score < 70)
+          || (risk === 'high'   && score < 40);
+        return matchQ && matchCat && matchRisk;
+      });
+
+      skip = 0;
+      renderTable();
+    }
+
+    ['admin-search', 'admin-category-filter', 'admin-risk-filter'].forEach(id => {
+      document.getElementById(id).addEventListener('input', applyFilters);
+      document.getElementById(id).addEventListener('change', applyFilters);
+    });
+
+    // ── RENDER TABLE ───────────────────────────────────────────────
+    function renderTable() {
+      const page    = filteredProducts.slice(skip, skip + limit);
+      const tbody   = document.getElementById('admin-tbody');
+      const pageNum = Math.floor(skip / limit) + 1;
+      const total   = Math.ceil(filteredProducts.length / limit);
+
+      document.getElementById('admin-page-info').textContent = `Page ${pageNum} of ${Math.max(total, 1)}`;
+      document.getElementById('admin-prev').disabled = skip === 0;
+      document.getElementById('admin-next').disabled = skip + limit >= filteredProducts.length;
+
+      tbody.innerHTML = page.map(p => {
+        const score    = Number(p.health_score || 0);
+        const hsClass  = score >= 70 ? 'hs-green' : score >= 40 ? 'hs-yellow' : 'hs-red';
+        const price    = p.current_price != null ? `$${Number(p.current_price).toFixed(2)}` : 'N/A';
+
+        return `
+          <tr data-id="${p.id}">
+            <td>
+              <a href="/products/${p.id}" style="font-weight:600;color:#111;text-decoration:none;">
+                ${p.name}
+              </a>
+            </td>
+            <td style="color:#666;">${p.category || '—'}</td>
+            <td style="font-weight:600;">${price}</td>
+            <td><span class="hs-badge ${hsClass}">${Math.round(score)}</span></td>
+            <td>
+              <input class="inline-input" type="number" min="0" max="100" step="0.1"
+                value="${Number(p.tariff_rate || 0).toFixed(1)}"
+                id="tariff-${p.id}" />%
+            </td>
+            <td>
+              <select class="inline-select" id="dep-${p.id}">
+                <option value="Low"     ${p.import_dependency === 'Low'     ? 'selected' : ''}>Low</option>
+                <option value="Medium"  ${p.import_dependency === 'Medium'  ? 'selected' : ''}>Medium</option>
+                <option value="High"    ${p.import_dependency === 'High'    ? 'selected' : ''}>High</option>
+                <option value="Unknown" ${(!p.import_dependency || p.import_dependency === 'Unknown') ? 'selected' : ''}>Unknown</option>
+              </select>
+            </td>
+            <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <button class="btn-save-row" onclick="saveProduct(${p.id})">
+                <i class="fa-solid fa-floppy-disk"></i> Save
+              </button>
+              <button class="btn-update-price" onclick="updatePrice(${p.id}, this)">
+                <i class="fa-solid fa-rotate"></i>
+              </button>
+              <span class="save-status" id="status-${p.id}"></span>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ── PAGINATION ─────────────────────────────────────────────────
+    document.getElementById('admin-prev').addEventListener('click', () => {
+      if (skip > 0) { skip -= limit; renderTable(); }
+    });
+
+    document.getElementById('admin-next').addEventListener('click', () => {
+      if (skip + limit < filteredProducts.length) { skip += limit; renderTable(); }
+    });
+
+    // ── SAVE PRODUCT ───────────────────────────────────────────────
+    async function saveProduct(id) {
+      const tariff = document.getElementById(`tariff-${id}`).value;
+      const dep    = document.getElementById(`dep-${id}`).value;
+      const btn    = document.querySelector(`tr[data-id="${id}"] .btn-save-row`);
+      const status = document.getElementById(`status-${id}`);
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      status.textContent = '';
+
+      try {
+        const res = await fetch(`${API}/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(localStorage.getItem('access_token')
+              ? { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+              : {})
+          },
+          body: JSON.stringify({
+            tariff_rate: parseFloat(tariff),
+            import_dependency: dep,
+          }),
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const updated = await res.json();
+
+        // Update local data
+        const idx = allProducts.findIndex(p => p.id === id);
+        if (idx !== -1) allProducts[idx] = updated;
+
+        status.textContent = '✓ Saved';
+        status.className = 'save-status save-ok';
+      } catch (err) {
+        status.textContent = '✗ Failed';
+        status.className = 'save-status save-err';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save';
+        setTimeout(() => { status.textContent = ''; }, 3000);
+      }
+    }
+
+    // ── UPDATE PRICE ───────────────────────────────────────────────
+    async function updatePrice(id, btn) {
+      const status = document.getElementById(`status-${id}`);
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+      try {
+        const res = await fetch(`${API}/${id}/update-price`, { method: 'POST' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        status.textContent = `→ $${Number(data.new_price).toFixed(2)}`;
+        status.className = 'save-status save-ok';
+
+        // Refresh table row price
+        const idx = allProducts.findIndex(p => p.id === id);
+        if (idx !== -1) allProducts[idx].current_price = data.new_price;
+        renderTable();
+      } catch (err) {
+        status.textContent = '✗ Error';
+        status.className = 'save-status save-err';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-rotate"></i>';
+        setTimeout(() => { status.textContent = ''; }, 4000);
+      }
+    }
+
+    // ── REFRESH ALL PRICES ─────────────────────────────────────────
+    async function refreshAllPrices() {
+      const btn    = document.getElementById('btn-refresh-all');
+      const status = document.getElementById('bulk-status');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing...';
+      status.textContent = '';
+
+      try {
+        const res = await fetch(`${API}/batch-update-prices`, { method: 'POST' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        status.textContent = `✓ Updated ${data.updated_count || 0} products`;
+        await loadProducts();
+      } catch (err) {
+        status.textContent = '✗ Batch update failed — try individual updates';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Refresh All Prices';
+      }
+    }
+
+    // ── HELPERS ────────────────────────────────────────────────────
+    function setLoading(loading, errorMsg = '') {
+      document.getElementById('admin-loading').style.display = loading ? 'flex' : 'none';
+      document.getElementById('admin-error').style.display   = errorMsg ? 'flex' : 'none';
+      document.getElementById('admin-error-text').textContent = errorMsg;
+    }
+
+    // ── BOOT ───────────────────────────────────────────────────────
+    loadProducts();
+  </script>
+</body>
+</html>
