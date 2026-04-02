@@ -8,8 +8,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -19,8 +19,6 @@ from app.models.user_model import User
 from app.schemas.auth_schemas import UserRegister
 
 logger = logging.getLogger(__name__)
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AuthService:
@@ -35,11 +33,20 @@ class AuthService:
 
     @staticmethod
     def _hash_password(password: str) -> str:
-        return pwd_context.hash(password)
+        hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+        return hashed.decode("utf-8")
 
     @staticmethod
     def _verify_password(plain_password: str, hashed_password: str) -> bool:
-        return pwd_context.verify(plain_password, hashed_password)
+        if not hashed_password:
+            return False
+        try:
+            return bcrypt.checkpw(
+                plain_password.encode("utf-8"),
+                hashed_password.encode("utf-8"),
+            )
+        except ValueError:
+            return False
 
     def _commit_or_raise(self) -> None:
         try:

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    DEPLOY_ENV: str = "development"
 
     #Database Config
     DATABASE_URL: str 
@@ -50,6 +51,13 @@ class Settings(BaseSettings):
     # Application Constants
     PRODUCTS_PER_PAGE: int = 20
     CACHE_TIMEOUT: int = 300  # 5 minutes
+
+    # Scheduler configuration
+    PRICE_UPDATE_JOB_ENABLED: bool = True
+    PRICE_UPDATE_CRON_HOUR_UTC: int = 6
+    PRICE_UPDATE_BATCH_SIZE: int = 10
+    PRICE_UPDATE_DELAY_SECONDS: float = 2.0
+    PRICE_UPDATE_MAX_DAILY_CALLS: int = 500
     
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -60,5 +68,4 @@ class Settings(BaseSettings):
 
 # Create global settings instance
 settings = Settings()
-
 
