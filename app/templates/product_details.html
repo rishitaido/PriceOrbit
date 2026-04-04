@@ -18,7 +18,6 @@
 
   <!-- Leaflet for store price map (Ticket #43) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/css/mobile.css">
 </head>
 
 <body>
@@ -49,26 +48,23 @@
     <aside class="sidebar">
       <ul>
         <li>
-          <a href="/products.html">
+          <a href="/products.html" class="active">
             <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
             <span class="text">Dashboard</span>
           </a>
         </li>
-
         <li>
-          <a href="#tracked_products">
+          <a href="/tracked">
             <span class="icon"><i class="fa-solid fa-box"></i></span>
             <span class="text">Tracked Products</span>
           </a>
         </li>
-
         <li>
           <a href="/stores">
             <span class="icon"><i class="fa-solid fa-store"></i></span>
             <span class="text">Store Locator</span>
           </a>
         </li>
-
         <li>
           <a href="/admin">
             <span class="icon"><i class="fa-solid fa-shield-halved"></i></span>
@@ -76,20 +72,19 @@
           </a>
         </li>
         <li>
-          <a href="#alerts">
+          <a href="/alerts">
             <span class="icon"><i class="fa-solid fa-bell"></i></span>
             <span class="text">Alerts</span>
           </a>
         </li>
-
         <li>
-          <a href="#settings">
+          <a href="/settings">
             <span class="icon"><i class="fa-solid fa-gear"></i></span>
             <span class="text">Settings</span>
           </a>
         </li>
         <li style="margin-top: auto; padding-top: 16px; border-top: 1px solid #eee;">
-          <a href="#" id="logout-btn" onclick="logout()" style="color: #dc2626;">
+          <a href="#" onclick="logout()" style="color: #dc2626;">
             <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
             <span class="text">Logout</span>
           </a>

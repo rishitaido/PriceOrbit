@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceOrbit - My Tracked Products</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/mobile.css">
+
+  <style>
+    .tracked-empty {
+      background: white;
+      border: 2px dashed #e5e7eb;
+      border-radius: 14px;
+      padding: 60px 20px;
+      text-align: center;
+      color: #9ca3af;
+      margin-top: 8px;
+    }
+    .tracked-empty i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+      opacity: 0.4;
+    }
+    .tracked-empty p {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+    .btn-browse {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #111;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: opacity .2s;
+    }
+    .btn-browse:hover { opacity: .85; }
+    .btn-untrack {
+      background: white;
+      border: 1px solid #ddd;
+      color: #666;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      transition: all .2s;
+      flex-shrink: 0;
+    }
+    .btn-untrack:hover {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+    .user-greeting {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .user-greeting strong { color: #111; }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <img src="/static/images/logo.png" alt="PriceOrbit Logo">
+      </div>
+      <div class="topbar-right">
+        <div class="search-container">
+          <i class="fa-solid fa-search"></i>
+          <input type="text" id="tracked-search" placeholder="Search tracked products..." />
+        </div>
+        <a href="/docs" class="btn-api-docs" target="_blank">
+          <i class="fa-solid fa-code"></i> API Docs
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <ul>
+        <li>
+          <a href="/products.html">
+            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+            <span class="text">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="/tracked" class="active">
+            <span class="icon"><i class="fa-solid fa-box"></i></span>
+            <span class="text">Tracked Products</span>
+          </a>
+        </li>
+        <li>
+          <a href="/stores">
+            <span class="icon"><i class="fa-solid fa-store"></i></span>
+            <span class="text">Store Locator</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin">
+            <span class="icon"><i class="fa-solid fa-shield-halved"></i></span>
+            <span class="text">Admin</span>
+          </a>
+        </li>
+        <li>
+          <a href="/alerts">
+            <span class="icon"><i class="fa-solid fa-bell"></i></span>
+            <span class="text">Alerts</span>
+          </a>
+        </li>
+        <li>
+          <a href="/settings">
+            <span class="icon"><i class="fa-solid fa-gear"></i></span>
+            <span class="text">Settings</span>
+          </a>
+        </li>
+        <li style="margin-top: auto; padding-top: 16px; border-top: 1px solid #eee;">
+          <a href="#" onclick="logout()" style="color: #dc2626;">
+            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+            <span class="text">Logout</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-header">
+        <h1>My Tracked Products</h1>
+        <p class="user-greeting" id="user-greeting">Your personal watchlist</p>
+      </div>
+
+      <!-- Stats -->
+      <div class="dashboard-stats" style="margin-bottom: 20px;">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #3b82f6;">
+            <i class="fa-solid fa-bookmark"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Tracking</p>
+            <p class="stat-value" id="stat-tracking">0</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #5dd1ab;">
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Avg Health Score</p>
+            <p class="stat-value" id="stat-health">—</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #ef4444;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">High Risk</p>
+            <p class="stat-value" id="stat-risk">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="tracked-loading" class="loading-state">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <p>Loading your tracked products...</p>
+      </div>
+
+      <!-- Products list -->
+      <div id="tracked-list" class="products-list"></div>
+    </main>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+  <script>
+    function logout() {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user_email');
+      localStorage.removeItem('user_name');
+      window.location.href = '/';
+    }
+
+    // ── TRACKED STORAGE ──────────────────────────────────────────────
+    function getTrackedKey() {
+      const email = localStorage.getItem('user_email') || 'guest';
+      return 'tracked_' + email;
+    }
+
+    function getTracked() {
+      try { return JSON.parse(localStorage.getItem(getTrackedKey()) || '[]'); }
+      catch { return []; }
+    }
+
+    function removeTracked(id) {
+      const tracked = getTracked().filter(t => t !== Number(id));
+      localStorage.setItem(getTrackedKey(), JSON.stringify(tracked));
+    }
+
+    // ── HEALTH HELPERS ───────────────────────────────────────────────
+    function getHealthClass(score) {
+      if (score >= 70) return 'health-green';
+      if (score >= 40) return 'health-yellow';
+      return 'health-red';
+    }
+
+    function getRiskLevel(score) {
+      if (score >= 70) return 'Stable';
+      if (score >= 40) return 'Medium Risk';
+      return 'High Risk';
+    }
+
+    function getRiskIcon(score) {
+      if (score >= 70) return '<i class="fa-solid fa-circle-check"></i>';
+      if (score >= 40) return '<i class="fa-solid fa-triangle-exclamation"></i>';
+      return '<i class="fa-solid fa-circle-exclamation"></i>';
+    }
+
+    // ── RENDER ───────────────────────────────────────────────────────
+    function renderTracked(products) {
+      const list = document.getElementById('tracked-list');
+      const trackedIds = getTracked();
+
+      // Filter to only tracked ones and apply search
+      const q = document.getElementById('tracked-search').value.toLowerCase();
+      const filtered = products
+        .filter(p => trackedIds.includes(p.id))
+        .filter(p => !q || p.name.toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q));
+
+      // Stats
+      document.getElementById('stat-tracking').textContent = trackedIds.length;
+      const avgHealth = filtered.length
+        ? Math.round(filtered.reduce((s, p) => s + Number(p.health_score || 0), 0) / filtered.length)
+        : '—';
+      document.getElementById('stat-health').textContent = avgHealth;
+      document.getElementById('stat-risk').textContent = filtered.filter(p => Number(p.health_score) < 40).length;
+
+      if (!trackedIds.length) {
+        list.innerHTML = `
+          <div class="tracked-empty">
+            <i class="fa-regular fa-bookmark"></i>
+            <p>You haven't tracked any products yet.</p>
+            <a href="/products.html" class="btn-browse">
+              <i class="fa-solid fa-magnifying-glass"></i> Browse Products
+            </a>
+          </div>`;
+        return;
+      }
+
+      if (!filtered.length) {
+        list.innerHTML = `
+          <div class="tracked-empty">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <p>No tracked products match your search.</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(p => {
+        const score     = Number(p.health_score || 0);
+        const hClass    = getHealthClass(score);
+        const price     = p.current_price != null ? `$${Number(p.current_price).toFixed(2)}` : 'N/A';
+        return `
+          <div class="product-item" id="tracked-item-${p.id}">
+            <div class="product-icon">
+              <i class="fa-solid fa-box"></i>
+            </div>
+            <div class="product-info">
+              <h3 class="product-name">${p.name}</h3>
+              <div class="product-meta">
+                <span class="product-category">${p.category || 'Uncategorized'}</span>
+                <span class="product-price">Kroger Price: ${price}</span>
+              </div>
+            </div>
+            <div class="product-health">
+              <div class="health-label">Health Score</div>
+              <div class="health-score-container">
+                <div class="health-bar-wrapper">
+                  <div class="health-bar-fill health-bar-${hClass.replace('health-','')}" style="width:${score}%"></div>
+                </div>
+                <span class="health-score-number ${hClass}">${Math.round(score)}</span>
+              </div>
+            </div>
+            <div class="product-status">
+              <span class="status-badge ${hClass}">
+                ${getRiskIcon(score)} ${getRiskLevel(score)}
+              </span>
+            </div>
+            <div class="product-actions" style="display:flex;gap:8px;align-items:center;">
+              <button class="btn-view-details" onclick="window.location.href='/products/${p.id}'">
+                View Details <i class="fa-solid fa-arrow-right"></i>
+              </button>
+              <button class="btn-untrack" title="Remove from tracked" onclick="untrack(${p.id})">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function untrack(id) {
+      removeTracked(id);
+      const item = document.getElementById(`tracked-item-${id}`);
+      if (item) {
+        item.style.opacity = '0';
+        item.style.transition = 'opacity .3s';
+        setTimeout(() => loadAndRender(), 350);
+      }
+    }
+
+    // ── LOAD ─────────────────────────────────────────────────────────
+    let cachedProducts = [];
+
+    async function loadAndRender() {
+      const trackedIds = getTracked();
+
+      if (!trackedIds.length) {
+        document.getElementById('tracked-loading').style.display = 'none';
+        renderTracked([]);
+        return;
+      }
+
+      if (cachedProducts.length) {
+        document.getElementById('tracked-loading').style.display = 'none';
+        renderTracked(cachedProducts);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/products/?limit=100&skip=0');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        cachedProducts = data.products || [];
+        document.getElementById('tracked-loading').style.display = 'none';
+        renderTracked(cachedProducts);
+      } catch {
+        document.getElementById('tracked-loading').style.display = 'none';
+        document.getElementById('tracked-list').innerHTML = `
+          <div class="error-state">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <p>Could not load products. Make sure the server is running.</p>
+          </div>`;
+      }
+    }
+
+    // ── SEARCH ───────────────────────────────────────────────────────
+    document.getElementById('tracked-search').addEventListener('input', () => {
+      renderTracked(cachedProducts);
+    });
+
+    // ── BOOT ─────────────────────────────────────────────────────────
+    if (!localStorage.getItem('access_token')) {
+      window.location.href = '/';
+    }
+
+    const email = localStorage.getItem('user_email');
+    if (email) {
+      document.getElementById('user-greeting').innerHTML =
+        `Logged in as <strong>${email}</strong>`;
+    }
+
+    loadAndRender();
+  </script>
+</body>
+</html>

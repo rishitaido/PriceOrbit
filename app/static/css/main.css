@@ -845,7 +845,7 @@ body {
 ========================= */
 
 .btn-view-details {
-  background: #070707;
+  background: #111;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -860,11 +860,38 @@ body {
 }
 
 .btn-view-details:hover {
-  background: #3e3e3e;
+  background: #333;
   transform: translateY(-1px);
 }
 
 .btn-view-details:active {
   transform: translateY(0);
-  background: #6b6b6b;
+  background: #111;
+}
+/* =========================
+   TRACK BUTTON
+========================= */
+.btn-track {
+  background: white;
+  border: 1px solid #ddd;
+  color: #666;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-track:hover {
+  border-color: #5dd1ab;
+  color: #5dd1ab;
+}
+
+.btn-track .fa-solid {
+  color: #5dd1ab;
 }
