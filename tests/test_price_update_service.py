@@ -57,7 +57,50 @@ async def test_update_price_from_kroger_success(db, monkeypatch):
     assert payload["new_price"] == Decimal("3.25")
     assert refreshed.current_price == Decimal("3.25")
     assert len(refreshed.price_history or []) == 1
+    assert refreshed.price_history[0]["source"] == "kroger_api"
     assert refreshed.last_price_check is not None
+
+
+@pytest.mark.asyncio
+async def test_update_price_records_snapshot_even_when_price_unchanged(db, monkeypatch):
+    service = make_service(db)
+    product = service.create_product(
+        ProductCreate(
+            name="Kroger Stable Price Test",
+            category="Dairy & Eggs",
+            current_price=Decimal("2.00"),
+            kroger_product_id="0001111060903",
+        )
+    )
+
+    class FakeKrogerService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get_product_details(self, kroger_product_id: str):
+            assert kroger_product_id == "0001111060903"
+            return {"items": [{"price": {"regular": 2.00}}]}
+
+        async def find_kroger_product(self, product_name: str, **kwargs):
+            return None
+
+    monkeypatch.setattr("app.services.product_service.KrogerService", FakeKrogerService)
+
+    payload = await service.update_price_from_kroger(product.id)
+    refreshed = service.get_product_by_id(product.id)
+
+    assert payload["old_price"] == Decimal("2.00")
+    assert payload["new_price"] == Decimal("2.00")
+    assert refreshed.current_price == Decimal("2.00")
+    assert len(refreshed.price_history or []) == 1
+    assert float(refreshed.price_history[0]["price"]) == 2.0
+    assert refreshed.price_history[0]["source"] == "kroger_api"
 
 
 @pytest.mark.asyncio

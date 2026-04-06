@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from difflib import SequenceMatcher
@@ -193,18 +194,65 @@ class ProductService:
         if not primary:
             return []
 
-        normalized_name = self._normalize_lookup_key(primary)
-        terms = [primary]
-        seen = {normalized_name}
+        base_primary = re.sub(r"\s*\([^)]*\)\s*$", "", primary).strip() or primary
+        normalized_base = self._normalize_lookup_key(base_primary)
+        normalized_primary = self._normalize_lookup_key(primary)
 
-        for alias in self._aliases_by_name.get(normalized_name, []):
-            normalized_alias = self._normalize_lookup_key(alias)
-            if not normalized_alias or normalized_alias in seen:
-                continue
-            seen.add(normalized_alias)
-            terms.append(alias)
+        terms = [base_primary]
+        seen = {normalized_base}
+
+        if normalized_primary and normalized_primary not in seen:
+            terms.append(primary)
+            seen.add(normalized_primary)
+
+        for lookup_key in (normalized_primary, normalized_base):
+            for alias in self._aliases_by_name.get(lookup_key, []):
+                normalized_alias = self._normalize_lookup_key(alias)
+                if not normalized_alias or normalized_alias in seen:
+                    continue
+                seen.add(normalized_alias)
+                terms.append(alias)
 
         return terms
+
+    @staticmethod
+    def _derive_size_label(raw_size: Optional[str]) -> Optional[str]:
+        size = str(raw_size or "").strip()
+        if not size:
+            return None
+        return re.sub(r"\s+", " ", size)
+
+    @classmethod
+    def _build_size_aware_name(cls, existing_name: str, raw_size: Optional[str]) -> str:
+        base_name = re.sub(r"\s*\([^)]*\)\s*$", "", (existing_name or "").strip()).strip()
+        if not base_name:
+            base_name = (existing_name or "").strip()
+        if not base_name:
+            return existing_name
+
+        size_label = cls._derive_size_label(raw_size)
+        if not size_label:
+            return base_name
+        return f"{base_name} ({size_label})"
+
+    def _apply_kroger_metadata_labels(self, product: Product, payload: Dict[str, Any]) -> None:
+        items = payload.get("items") or []
+        item = items[0] if items else {}
+
+        candidate_name = self._build_size_aware_name(product.name, item.get("size"))
+        existing = (
+            self.db.query(Product)
+            .filter(Product.name == candidate_name, Product.id != product.id)
+            .first()
+        )
+        if existing is None:
+            product.name = candidate_name
+        else:
+            product.name = f"{candidate_name} [{product.id}]"
+
+        description = str(payload.get("description") or "").strip()
+        if description:
+            product.description = description
 
     @staticmethod
     def parse_store_ids_csv(store_ids: Optional[str]) -> Optional[List[int]]:
@@ -570,6 +618,7 @@ class ProductService:
                 product.add_price_to_history(
                     product.current_price,
                     datetime.now(timezone.utc).isoformat(),
+                    source="manual_update",
                 )
 
         for field, value in update_data.items():
@@ -622,11 +671,12 @@ class ProductService:
                 product.add_price_to_history(
                     product.current_price,
                     datetime.now(timezone.utc).isoformat(),
+                    source="manual_price_point",
                 )
             product.current_price = price
             product.last_price_check = datetime.now(timezone.utc)
         else:
-            product.add_price_to_history(price, record_date)
+            product.add_price_to_history(price, record_date, source="manual_price_point")
 
         if product.price_history:
             product.price_history = PriceHistoryService.clean_old_history(product.price_history)
@@ -662,22 +712,66 @@ class ProductService:
     async def _resolve_kroger_product(self, product: Product, kroger: KrogerService) -> Dict[str, Any]:
         override_kroger_id = self._get_override_kroger_id(product)
         if override_kroger_id:
-            if product.kroger_product_id != override_kroger_id:
-                product.kroger_product_id = override_kroger_id
-                logger.info(
-                    "Applied manual Kroger override for product id=%s: %s",
+            try:
+                payload = await kroger.get_product_details(override_kroger_id)
+            except (KrogerAPIError, KrogerRateLimitError, ValueError) as exc:
+                logger.warning(
+                    "Override Kroger ID failed for product id=%s id=%s: %s",
                     product.id,
+                    override_kroger_id,
+                    exc,
+                )
+            else:
+                if self._is_category_compatible(product.category, payload):
+                    if product.kroger_product_id != override_kroger_id:
+                        product.kroger_product_id = override_kroger_id
+                        logger.info(
+                            "Applied manual Kroger override for product id=%s: %s",
+                            product.id,
+                            override_kroger_id,
+                        )
+
+                    override_image = self._extract_image_from_search_candidate(payload)
+                    if override_image:
+                        product.image_url = override_image
+                    self._apply_kroger_metadata_labels(product, payload)
+                    return payload
+
+                logger.warning(
+                    "Rejected override Kroger ID for product id=%s name='%s' category='%s' id=%s",
+                    product.id,
+                    product.name,
+                    product.category,
                     override_kroger_id,
                 )
 
-            payload = await kroger.get_product_details(product.kroger_product_id)
-            override_image = self._extract_image_from_search_candidate(payload)
-            if override_image:
-                product.image_url = override_image
-            return payload
+            if product.kroger_product_id == override_kroger_id:
+                product.kroger_product_id = None
 
         if product.kroger_product_id:
-            return await kroger.get_product_details(product.kroger_product_id)
+            mapped_id = str(product.kroger_product_id).strip()
+            try:
+                payload = await kroger.get_product_details(mapped_id)
+            except (KrogerAPIError, KrogerRateLimitError, ValueError) as exc:
+                logger.warning(
+                    "Stored Kroger mapping failed for product id=%s mapped_id=%s: %s",
+                    product.id,
+                    mapped_id,
+                    exc,
+                )
+                product.kroger_product_id = None
+            else:
+                if self._is_category_compatible(product.category, payload):
+                    self._apply_kroger_metadata_labels(product, payload)
+                    return payload
+
+                logger.warning(
+                    "Stored Kroger mapping category mismatch for product id=%s name='%s' mapped_id=%s; remapping",
+                    product.id,
+                    product.name,
+                    mapped_id,
+                )
+                product.kroger_product_id = None
 
         search_terms = self._get_search_terms(product.name)
         for index, search_term in enumerate(search_terms):
@@ -703,7 +797,31 @@ class ProductService:
                 search_term,
                 match.get("confidence"),
             )
-            return await kroger.get_product_details(product.kroger_product_id)
+            try:
+                payload = await kroger.get_product_details(product.kroger_product_id)
+            except (KrogerAPIError, KrogerRateLimitError, ValueError) as exc:
+                logger.warning(
+                    "Mapped Kroger ID lookup failed for product id=%s term='%s' id=%s: %s",
+                    product.id,
+                    search_term,
+                    product.kroger_product_id,
+                    exc,
+                )
+                product.kroger_product_id = None
+                continue
+
+            if not self._is_category_compatible(product.category, payload):
+                logger.warning(
+                    "Rejected mapped Kroger ID for product id=%s term='%s' id=%s due to category mismatch",
+                    product.id,
+                    search_term,
+                    product.kroger_product_id,
+                )
+                product.kroger_product_id = None
+                continue
+
+            self._apply_kroger_metadata_labels(product, payload)
+            return payload
 
         raise ExternalAPIError("Kroger", f"No product match found for '{product.name}'.")
 
@@ -785,6 +903,7 @@ class ProductService:
         kroger: KrogerService,
         limit: int = 10,
     ) -> Optional[Decimal]:
+        locked_override_id = self._get_override_kroger_id(product)
         candidates: List[Dict[str, Any]] = []
         seen_ids: set[str] = set()
         for search_term in self._get_search_terms(product.name):
@@ -801,9 +920,10 @@ class ProductService:
         if not candidates:
             return None
 
+        product_label = re.sub(r"\s*\([^)]*\)\s*$", "", (product.name or "").strip()).strip() or product.name
         ranked = sorted(
             candidates,
-            key=lambda item: self._confidence(product.name, item.get("description") or ""),
+            key=lambda item: self._confidence(product_label, item.get("description") or ""),
             reverse=True,
         )
 
@@ -824,12 +944,24 @@ class ProductService:
                     continue
                 seen.add(candidate_id)
 
+                candidate_confidence = self._confidence(
+                    product_label,
+                    candidate.get("description") or "",
+                )
+                if candidate_confidence < settings.KROGER_FALLBACK_MIN_SIMILARITY:
+                    continue
+
                 try:
                     price = self._extract_price_from_kroger_payload(candidate)
                 except ExternalAPIError:
                     continue
 
-                if candidate_id and candidate_id != product.kroger_product_id:
+                remapped = False
+                if (
+                    not locked_override_id
+                    and candidate_id
+                    and candidate_id != product.kroger_product_id
+                ):
                     product.kroger_product_id = candidate_id
                     image_url = self._extract_image_from_search_candidate(candidate)
                     if image_url:
@@ -839,6 +971,10 @@ class ProductService:
                         product.id,
                         candidate_id,
                     )
+                    remapped = True
+
+                if remapped or (candidate_id and candidate_id == product.kroger_product_id):
+                    self._apply_kroger_metadata_labels(product, candidate)
                 return price
         return None
 
@@ -859,6 +995,19 @@ class ProductService:
                         return fallback_price
                     raise
             except (KrogerAPIError, KrogerRateLimitError, ExternalAPIError, ValueError) as exc:
+                if self._is_unmatched_product_error(exc) and hasattr(kroger, "search_products"):
+                    try:
+                        fallback_price = await self._fallback_price_from_search_candidates(product, kroger)
+                    except (AttributeError, KrogerAPIError, KrogerRateLimitError, ValueError) as fallback_exc:
+                        logger.warning(
+                            "Fallback search failed for product id=%s after unmatched error: %s",
+                            product.id,
+                            fallback_exc,
+                        )
+                    else:
+                        if fallback_price is not None:
+                            return fallback_price
+
                 is_last_attempt = attempt == retries - 1
                 skip_unmatched_retries = (
                     settings.KROGER_SKIP_UNMATCHED_RETRIES and self._is_unmatched_product_error(exc)
@@ -912,8 +1061,13 @@ class ProductService:
 
         new_price = await self._fetch_price_with_retries(product, kroger, retries=3)
 
-        if old_price is not None and old_price != new_price:
-            product.add_price_to_history(old_price, datetime.now(timezone.utc).isoformat())
+        # Always persist a daily snapshot point so 7/30-day history can build
+        # even when today's fetched price matches yesterday's.
+        product.add_price_to_history(
+            new_price,
+            datetime.now(timezone.utc).isoformat(),
+            source="kroger_api",
+        )
 
         product.current_price = new_price
         product.last_price_check = datetime.now(timezone.utc)

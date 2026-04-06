@@ -12,6 +12,7 @@ class PriceHistoryEntry(BaseModel):
     """Single entry in price history"""
     date: str = Field(..., description="ISO format date string")
     price: float = Field(..., ge=0, description="Price value")
+    source: Optional[str] = Field(None, description="Origin of this point (e.g., kroger_api)")
 
 
 class ProductBase(BaseModel):

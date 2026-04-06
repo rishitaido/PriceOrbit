@@ -37,7 +37,10 @@ class Product(Base):
     
     # Pricing Information
     current_price = Column(DECIMAL(10, 2), nullable=True)
-    price_history = Column(JSON, default=list)  # Store as JSON array: [{"date": "2025-01-27", "price": 3.99}, ...]
+    price_history = Column(
+        JSON,
+        default=list,
+    )  # Store as JSON array: [{"date": "...", "price": 3.99, "source": "kroger_api"}, ...]
     
     # Supply Chain Factors
     tariff_rate = Column(DECIMAL(5, 2), default=0.0, nullable=False)  # Percentage (e.g., 15.5 = 15.5%)
@@ -116,7 +119,7 @@ class Product(Base):
         logger.info("Product id=%s health_score=%.2f", self.id, float(self.health_score))
         return self.health_score
     
-    def add_price_to_history(self, price: Decimal, date: str = None):
+    def add_price_to_history(self, price: Decimal, date: str = None, source: str | None = None):
         """
         Add a price point to price history
         
@@ -135,6 +138,8 @@ class Product(Base):
             "date": date,
             "price": float(price)
         }
+        if source:
+            price_entry["source"] = source
         
         # Avoid duplicate entries for same date
         # Remove existing entry for this date if it exists
