@@ -64,9 +64,29 @@ The daily scheduler runs at `06:00 UTC` by default and can be tuned via env vars
 - `PRICE_UPDATE_BATCH_SIZE`
 - `PRICE_UPDATE_DELAY_SECONDS`
 - `PRICE_UPDATE_MAX_DAILY_CALLS`
+- `PRICE_UPDATE_RUN_ON_STARTUP_IF_STALE`
+- `PRICE_UPDATE_STALE_HOURS`
 
 Logs are written to:
 - `app/logs/price_updates.log`
+
+## Price History (Kroger-Only)
+To keep history points sourced from live Kroger calls only:
+
+```bash
+python scripts/rebuild_kroger_only_history.py --clear-existing
+```
+
+Optional flags:
+- `--limit N` process first N products
+- `--delay-seconds X` throttle API calls
+
+## Synthetic Backfill (Optional)
+If you still want generated historical points for demo charts:
+
+```bash
+python scripts/backfill_price_history.py --days 30
+```
 
 ## Documentation
 - Deployment: `docs/DEPLOYMENT.md`

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, TextIO
 
@@ -125,8 +125,42 @@ class PriceUpdateScheduler:
         self.scheduler.start()
         self._started = True
         self._state["scheduler_enabled"] = True
-        job_logger.info("Price update scheduler started (daily 06:00 UTC).")
+        scheduled_hour = max(0, min(settings.PRICE_UPDATE_CRON_HOUR_UTC, 23))
+        job_logger.info("Price update scheduler started (daily %02d:00 UTC).", scheduled_hour)
+
+        if settings.PRICE_UPDATE_RUN_ON_STARTUP_IF_STALE:
+            if self._has_stale_products():
+                job_logger.info("Startup catch-up triggered: stale or unchecked products found.")
+                self._current_task = asyncio.create_task(
+                    self._run_update_job(
+                        source="startup_catchup",
+                        limit=max(1, min(settings.PRICE_UPDATE_BATCH_SIZE, 50)),
+                        delay_seconds=max(0.0, settings.PRICE_UPDATE_DELAY_SECONDS),
+                    )
+                )
+            else:
+                job_logger.info("Startup catch-up skipped: products are fresh.")
         return True
+
+    @staticmethod
+    def _has_stale_products() -> bool:
+        threshold_hours = max(1, int(settings.PRICE_UPDATE_STALE_HOURS))
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=threshold_hours)
+
+        db = SessionLocal()
+        try:
+            stale_exists = (
+                db.query(Product.id)
+                .filter(
+                    (Product.last_price_check.is_(None)) | (Product.last_price_check < cutoff)
+                )
+                .limit(1)
+                .first()
+                is not None
+            )
+            return stale_exists
+        finally:
+            db.close()
 
     async def shutdown(self) -> None:
         if self.scheduler.running:
@@ -178,7 +212,18 @@ class PriceUpdateScheduler:
             errors: list[dict[str, Any]] = []
 
             try:
-                products = db.query(Product).order_by(Product.id.asc()).limit(limit).all()
+                # Prioritize products never checked (NULL), then oldest checks first,
+                # so small batches still cycle across the full catalog over time.
+                products = (
+                    db.query(Product)
+                    .order_by(
+                        Product.last_price_check.isnot(None).asc(),
+                        Product.last_price_check.asc(),
+                        Product.id.asc(),
+                    )
+                    .limit(limit)
+                    .all()
+                )
                 processed = len(products)
                 service = ProductService(db)
 
@@ -233,7 +278,7 @@ class PriceUpdateScheduler:
     async def trigger_manual_update(
         self,
         *,
-        limit: int = 10,
+        limit: int = 50,
         delay_seconds: float = 2.0,
     ) -> Dict[str, Any]:
         if self._current_task and not self._current_task.done():

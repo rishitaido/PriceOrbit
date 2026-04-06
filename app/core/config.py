@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     KROGER_MIN_MATCH_CONFIDENCE: float = 70.0
     KROGER_CERT_MIN_MATCH_CONFIDENCE: float = 55.0
     KROGER_ALIAS_MIN_MATCH_CONFIDENCE: float = 45.0
+    KROGER_FALLBACK_MIN_SIMILARITY: float = 0.45
     KROGER_SKIP_UNMATCHED_RETRIES: bool = False
     KROGER_OVERRIDE_FILE: str = "data/kroger_product_overrides.json"
     KROGER_ALIAS_FILE: str = "data/kroger_search_aliases.json"
@@ -58,6 +59,8 @@ class Settings(BaseSettings):
     PRICE_UPDATE_BATCH_SIZE: int = 10
     PRICE_UPDATE_DELAY_SECONDS: float = 2.0
     PRICE_UPDATE_MAX_DAILY_CALLS: int = 500
+    PRICE_UPDATE_RUN_ON_STARTUP_IF_STALE: bool = True
+    PRICE_UPDATE_STALE_HOURS: int = 24
     
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -68,4 +71,3 @@ class Settings(BaseSettings):
 
 # Create global settings instance
 settings = Settings()
-
