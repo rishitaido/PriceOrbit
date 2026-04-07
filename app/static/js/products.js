@@ -1,4 +1,41 @@
 // products.js - product listing, filtering, search, and pagination
+// ── TRACKED PRODUCTS (localStorage) ──────────────────────────────────────────
+
+function getTrackedKey() {
+  const email = localStorage.getItem("user_email") || "guest";
+  return "tracked_" + email;
+}
+
+function getTracked() {
+  try {
+    return JSON.parse(localStorage.getItem(getTrackedKey()) || "[]");
+  } catch { return []; }
+}
+
+function saveTracked(ids) {
+  localStorage.setItem(getTrackedKey(), JSON.stringify(ids));
+}
+
+function isTracked(id) {
+  return getTracked().includes(Number(id));
+}
+
+function toggleTrack(id, btn) {
+  id = Number(id);
+  let tracked = getTracked();
+  if (tracked.includes(id)) {
+    tracked = tracked.filter(t => t !== id);
+    btn.innerHTML = '<i class="fa-regular fa-bookmark"></i>';
+    btn.title = "Track this product";
+  } else {
+    tracked.push(id);
+    btn.innerHTML = '<i class="fa-solid fa-bookmark"></i>';
+    btn.title = "Untrack this product";
+  }
+  saveTracked(tracked);
+}
+
+
 
 const API_BASE = "/api/products";
 
@@ -93,9 +130,23 @@ function updateDashboardStats(products, total) {
     ? Math.round(products.reduce((sum, p) => sum + Number(p.health_score || 0), 0) / products.length)
     : 0;
   const highRisk = products.filter((p) => p.health_score < 40).length;
-  const activeAlerts = 0; // Real alerts system coming in Sprint 4
 
-  document.getElementById("stat-total").textContent = total;
+  const userEmail = localStorage.getItem("user_email") || "guest";
+
+  // Active alerts from localStorage
+  let activeAlerts = 0;
+  try {
+    const alerts = JSON.parse(localStorage.getItem("alerts_" + userEmail) || "{}");
+    activeAlerts = Object.values(alerts).filter(a => a.enabled).length;
+  } catch { activeAlerts = 0; }
+
+  // User's personally tracked products count
+  let myTrackedCount = 0;
+  try {
+    myTrackedCount = JSON.parse(localStorage.getItem("tracked_" + userEmail) || "[]").length;
+  } catch { myTrackedCount = 0; }
+
+  document.getElementById("stat-total").textContent = myTrackedCount;
   document.getElementById("stat-health").textContent = avgHealth;
   document.getElementById("stat-risk").textContent = highRisk;
   document.getElementById("stat-alerts").textContent = activeAlerts;
@@ -141,9 +192,9 @@ function createProductCard(product) {
         </span>
       </div>
 
-      <div class="product-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <div class="product-actions" style="display:flex; gap:8px; align-items:center;">
         <button class="btn-view-details" data-product-id="${product.id}">View Details <i class="fa-solid fa-arrow-right"></i></button>
-        <button class="btn-track" data-product-id="${product.id}" onclick="toggleTrack(${product.id}, this)" title="Track this product">
+        <button class="btn-track" onclick="toggleTrack(${product.id}, this)" title="Track this product">
           ${isTracked(product.id) ? '<i class="fa-solid fa-bookmark"></i>' : '<i class="fa-regular fa-bookmark"></i>'}
         </button>
       </div>
@@ -341,42 +392,6 @@ function setupControls() {
   }
 }
 
-
-// ── TRACKED PRODUCTS (localStorage) ──────────────────────────────────────────
-
-function getTrackedKey() {
-  const email = localStorage.getItem("user_email") || "guest";
-  return "tracked_" + email;
-}
-
-function getTracked() {
-  try {
-    return JSON.parse(localStorage.getItem(getTrackedKey()) || "[]");
-  } catch { return []; }
-}
-
-function saveTracked(ids) {
-  localStorage.setItem(getTrackedKey(), JSON.stringify(ids));
-}
-
-function isTracked(id) {
-  return getTracked().includes(Number(id));
-}
-
-function toggleTrack(id, btn) {
-  id = Number(id);
-  let tracked = getTracked();
-  if (tracked.includes(id)) {
-    tracked = tracked.filter(t => t !== id);
-    btn.innerHTML = '<i class="fa-regular fa-bookmark"></i>';
-    btn.title = "Track this product";
-  } else {
-    tracked.push(id);
-    btn.innerHTML = '<i class="fa-solid fa-bookmark"></i>';
-    btn.title = "Untrack this product";
-  }
-  saveTracked(tracked);
-}
 
 document.addEventListener("DOMContentLoaded", async () => {
   syncStateFromURL();
