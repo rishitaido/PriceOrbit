@@ -291,3 +291,38 @@ function initMobileNav() {
 }
 
 document.addEventListener('DOMContentLoaded', initMobileNav);
+
+// ============================================
+// AUTH TOAST - shown when user is not logged in
+// ============================================
+function showAuthToast() {
+  const existing = document.getElementById("po-auth-toast");
+  if (existing) existing.remove();
+
+  const style = document.createElement("style");
+  style.textContent = "@keyframes poSlideUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }";
+  document.head.appendChild(style);
+
+  const toast = document.createElement("div");
+  toast.id = "po-auth-toast";
+  toast.innerHTML = `
+    <i class="fa-solid fa-circle-info" style="flex-shrink:0;"></i>
+    <span>Please sign in to access this feature.</span>
+    <a href="/register" style="color:#5dd1ab; font-weight:700; margin-left:10px; text-decoration:underline; white-space:nowrap;">Create Account</a>
+    <a href="/" style="color:white; font-weight:700; margin-left:8px; text-decoration:underline; white-space:nowrap;">Log In</a>
+  `;
+  toast.style.cssText = `
+    position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+    background:#111; color:white; padding:14px 22px; border-radius:10px;
+    font-size:14px; display:flex; align-items:center; gap:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.25); z-index:9999;
+    animation:poSlideUp 0.3s ease; white-space:nowrap;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity 0.4s";
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+window.showAuthToast = showAuthToast;

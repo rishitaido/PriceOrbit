@@ -364,16 +364,29 @@
 
     // ── BOOT ─────────────────────────────────────────────────────────
     if (!localStorage.getItem('access_token')) {
-      window.location.href = '/';
+      document.getElementById('tracked-loading').style.display = 'none';
+      document.getElementById('tracked-list').innerHTML = `
+        <div class="tracked-empty">
+          <i class="fa-solid fa-lock"></i>
+          <p style="font-size:20px; font-weight:600; color:#111; margin-bottom:8px;">You're not logged in</p>
+          <p style="margin-bottom:20px;">Create an account or log in to save and track your favorite products.</p>
+          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+            <a href="/register" class="btn-browse" style="background:#5dd1ab;">
+              <i class="fa-solid fa-user-plus"></i> Create Account
+            </a>
+            <a href="/" class="btn-browse">
+              <i class="fa-solid fa-right-to-bracket"></i> Log In
+            </a>
+          </div>
+        </div>`;
+    } else {
+      const email = localStorage.getItem('user_email');
+      if (email) {
+        document.getElementById('user-greeting').innerHTML =
+          `Logged in as <strong>${email}</strong>`;
+      }
+      loadAndRender();
     }
-
-    const email = localStorage.getItem('user_email');
-    if (email) {
-      document.getElementById('user-greeting').innerHTML =
-        `Logged in as <strong>${email}</strong>`;
-    }
-
-    loadAndRender();
   </script>
 </body>
 </html>
