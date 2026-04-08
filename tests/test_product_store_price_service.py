@@ -84,6 +84,14 @@ async def test_get_product_prices_by_store_persists_records(db, monkeypatch):
                 return {"items": [{"price": {"regular": 3.35}}]}
             return {"items": [{"price": {"regular": 2.99}}]}
 
+        async def get_product_price_by_location(self, product_id: str, location_id: str):
+            assert product_id == "0001111060903"
+            if location_id == "01400943":
+                return {"price": {"regular": 3.10}, "nationalPrice": {}}
+            if location_id == "01400944":
+                return {"price": {"regular": 3.35}, "nationalPrice": {}}
+            return {"price": {"regular": 2.99}, "nationalPrice": {}}
+
         async def find_kroger_product(self, product_name: str, **kwargs):
             return None
 

@@ -17,11 +17,11 @@ Jinja2==3.1.2
 MarkupSafe==3.0.3
 packaging==26.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 pluggy==1.6.0
 pycparser==3.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
-pydantic_core==2.14.1
 python-jose[cryptography]==3.3.0
 PyMySQL==1.1.0
 pytest==7.4.0
@@ -40,3 +40,4 @@ uvloop==0.22.1
 watchfiles==1.1.1
 websockets==16.0
 alembic>=1.11.1
+APScheduler==3.10.4

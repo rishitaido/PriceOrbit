@@ -2,7 +2,8 @@
 SQLAlchemy Base class for all models
 Import all models here to ensure they're registered with Base
 """
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import DeclarativeBase
 
-# Create Base class for all models
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """Declarative base for all ORM models."""

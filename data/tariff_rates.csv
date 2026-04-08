@@ -1,31 +1,51 @@
-product_name,hts_code,tariff_rate
-Bananas,0803.90.00,0.0
-Avocados,0804.40.00,0.0
-Tomatoes,0702.00.20,0.0
-Bell Peppers,0709.60.40,0.0
-Garlic,0703.20.00,0.0
-Strawberries,0810.10.20,0.0
-Blueberries,0810.40.00,0.0
-Oranges,0805.10.00,0.0
-Spinach,0709.70.00,20.0
-Broccoli,0704.10.20,2.5
-Salmon Fillet,0304.41.00,0.0
-Shrimp,0306.17.00,0.0
-Tilapia,0304.61.00,0.0
-Lamb Chops,0204.22.20,0.0
-Beef Steak,0201.30.02,4.0
-Ground Turkey,0207.26.00,0.0
-Pork Chops,0203.19.40,0.0
-White Rice,1006.30.90,0.0
-Brown Rice,1006.20.40,0.0
-Pasta,1902.19.20,0.0
-Olive Oil,1509.30.20,0.0
-Vegetable Oil,1507.90.40,19.1
-Sugar,1701.99.50,0.0
-Peanut Butter,2008.11.02,0.0
-Canned Chickpeas,2005.99.85,0.0
-Almond Milk,2202.99.91,0.0
-Parmesan Cheese,0406.90.97,0.0
-Mozzarella Cheese,0406.10.48,0.0
-Frozen Berries,0811.90.80,14.5
-Frozen Vegetables,0710.90.91,14.0
+product_name,hts_code,tariff_rate,origin_country,import_dependency
+All-Purpose Flour,1101.00.00,0.00,United States,Low
+Almond Milk,2202.99.91,0.00,Canada,Medium
+Apples,0808.10.00,0.00,United States,Low
+Avocados,0804.40.00,0.00,Mexico,High
+Bacon,0210.12.00,0.00,United States,Low
+Bananas,0803.90.00,0.00,Guatemala,High
+Beef Steak,0201.30.02,4.00,United States,Low
+Bell Peppers,0709.60.40,0.00,Mexico,High
+Blueberries,0810.40.00,0.00,Peru,Medium
+Broccoli,0704.10.20,2.50,Mexico,Medium
+Brown Rice,1006.20.40,1.80,India,Medium
+Butter,0405.10.20,0.00,United States,Low
+Canned Black Beans,2005.51.40,0.00,United States,Low
+Canned Chickpeas,2005.99.85,11.20,Turkey,Medium
+Carrots,0706.10.05,0.00,United States,Low
+Cheddar Cheese,0406.90.95,0.00,United States,Low
+Chicken Breast,0207.14.00,0.00,United States,Low
+Eggs,0407.21.00,0.00,United States,Low
+Frozen Berries,0811.90.80,14.50,Chile,Medium
+Frozen Chicken Nuggets,1602.32.00,0.00,United States,Low
+Frozen Pizza,1905.90.90,0.00,United States,Low
+Frozen Vegetables,0710.90.91,14.00,Mexico,Medium
+Garlic,0703.20.00,25.00,China,High
+Greek Yogurt,0403.20.90,0.00,United States,Low
+Ground Beef,0201.30.04,0.00,United States,Low
+Ground Turkey,0207.26.00,0.00,United States,Low
+Heavy Cream,0401.50.50,0.00,United States,Low
+Ice Cream,2105.00.40,0.00,United States,Low
+Lamb Chops,0204.22.20,0.70,Australia,High
+Lettuce,0705.19.20,0.00,United States,Low
+Mozzarella Cheese,0406.10.48,0.00,United States,Low
+Olive Oil,1509.30.20,3.40,Spain,High
+Onions,0703.10.40,0.00,United States,Low
+Oranges,0805.10.00,0.00,United States,Low
+Parmesan Cheese,0406.90.97,15.00,Italy,High
+Pasta,1902.19.20,6.40,United States,Low
+Peanut Butter,2008.11.02,0.00,United States,Low
+Pork Chops,0203.19.40,0.00,United States,Low
+Potatoes,0701.90.10,0.00,United States,Low
+Salmon Fillet,0304.41.00,0.00,Chile,High
+Shrimp,0306.17.00,0.00,India,High
+Sour Cream,0403.90.72,0.00,United States,Low
+Spinach,0709.70.00,20.00,United States,Low
+Strawberries,0810.10.20,0.00,Mexico,Medium
+Sugar,1701.99.50,0.00,Mexico,Medium
+Tilapia,0304.61.00,25.00,China,High
+Tomatoes,0702.00.20,0.00,Mexico,High
+Vegetable Oil,1507.90.40,19.10,Canada,Medium
+White Rice,1006.30.90,1.40,India,Medium
+Whole Milk,0401.20.40,0.00,United States,Low

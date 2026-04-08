@@ -4,6 +4,47 @@ const API_BASE = "/api/products";
 let priceChart = null;
 let activeProductId = null;
 
+// ── TRACKING (localStorage) ──────────────────────────────────────────────────
+function getTrackedKey() {
+  const email = localStorage.getItem("user_email") || "guest";
+  return "tracked_" + email;
+}
+
+function getTracked() {
+  try { return JSON.parse(localStorage.getItem(getTrackedKey()) || "[]"); }
+  catch { return []; }
+}
+
+function isTracked(id) {
+  return getTracked().includes(Number(id));
+}
+
+function toggleTrack(id) {
+  id = Number(id);
+  let tracked = getTracked();
+  if (tracked.includes(id)) {
+    tracked = tracked.filter(t => t !== id);
+  } else {
+    tracked.push(id);
+  }
+  localStorage.setItem(getTrackedKey(), JSON.stringify(tracked));
+  updateTrackButton(id);
+}
+
+function updateTrackButton(id) {
+  const btn = document.querySelector(".btn-track-product");
+  if (!btn) return;
+  if (isTracked(id)) {
+    btn.innerHTML = '<i class="fa-solid fa-bookmark"></i> Tracked';
+    btn.style.background = "#111";
+    btn.style.color = "#fff";
+  } else {
+    btn.innerHTML = '<i class="fa-solid fa-plus"></i> Track Product';
+    btn.style.background = "";
+    btn.style.color = "";
+  }
+}
+
 function getProductId() {
   const match = window.location.pathname.match(/\/products?\/(\d+)/);
   return match ? match[1] : null;
@@ -22,6 +63,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function bindActions() {
+  const trackBtn = document.querySelector(".btn-track-product");
+  if (trackBtn) {
+    trackBtn.addEventListener("click", () => {
+      if (activeProductId) toggleTrack(activeProductId);
+    });
+  }
+
   const updateButton = document.getElementById("update-price-btn");
   if (!updateButton) return;
 
@@ -95,6 +143,7 @@ async function loadProductDetail(productId, { showLoading: shouldShowLoading }) 
 }
 
 function displayProductInfo(product, stats = null) {
+  updateTrackButton(product.id);
   document.getElementById("product-name").textContent = product.name;
   document.getElementById("product-category").textContent = product.category || "Uncategorized";
 
@@ -133,6 +182,7 @@ function updateHealthScore(score) {
   const scoreText = document.getElementById("score-text");
   const scoreFill = document.getElementById("score-fill");
   const statusBadge = document.getElementById("health-status");
+  if (!scoreText || !scoreFill || !statusBadge) return;
 
   scoreText.textContent = Math.round(score);
   scoreFill.style.strokeDasharray = `${(score / 100) * 251.2} 251.2`;
@@ -484,7 +534,10 @@ async function openStoreMapModal(productId, productName, basePrice) {
       const priceRes = await fetch(`${PRICES_API_BASE}/${productId}/prices?store_ids=${storeIds}`);
       if (priceRes.ok) {
         const priceData = await priceRes.json();
-        priceData.forEach((p) => { priceMap[p.store_id] = p.price; });
+        const pricesArray = priceData?.prices || priceData;
+        (Array.isArray(pricesArray) ? pricesArray : []).forEach((p) => {
+          priceMap[p.store_id] = p.price;
+        });
       }
     } catch {
       // Prices API not ready yet — generate slight variations of base price
@@ -641,7 +694,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-  document.getElementById("detail-loading").style.display = "none";
-  document.getElementById("detail-error").style.display = "flex";
-  document.getElementById("detail-error-text").textContent = message || "Product not found";
-  document.getElementById("product-detail").style.display = "none";
+function showError(message) {
+  const loading = document.getElementById("detail-loading");
+  const error = document.getElementById("detail-error");
+  const errorText = document.getElementById("detail-error-text");
+  const detail = document.getElementById("product-detail");
+
+  if (loading) loading.style.display = "none";
+  if (error) error.style.display = "flex";
+  if (errorText) errorText.textContent = message || "Product not found";
+  if (detail) detail.style.display = "none";
+}

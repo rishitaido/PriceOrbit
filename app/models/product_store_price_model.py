@@ -5,6 +5,7 @@ Product-store price join model for location-specific pricing.
 from __future__ import annotations
 
 from sqlalchemy import DECIMAL, Column, DateTime, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.db.base import Base
@@ -29,6 +30,8 @@ class ProductStorePrice(Base):
         nullable=False,
         index=True,
     )
+    product = relationship("Product", back_populates="store_prices")
+    store = relationship("Store", back_populates="product_prices")
 
     def __repr__(self) -> str:
         """String representation for debugging."""

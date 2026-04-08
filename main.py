@@ -16,8 +16,11 @@ from app.core.exceptions import (
 )
 from app.routers.main import router as main_router 
 from app.routers.auth_routes import router as auth_routes_router
+from app.routers.alert_routes import router as alert_routes_router
+from app.routers.admin_routes import router as admin_routes_router
 from app.routers.product_routes import router as product_routes_router
 from app.routers.store_routes import router as store_routes_router
+from app.tasks.price_updater import price_update_scheduler
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="app/templates")
@@ -30,9 +33,11 @@ async def lifespan(app: FastAPI):
     logger.info("Database: %s", settings.MYSQL_DATABASE)
     logger.info("Debug Mode: %s", settings.DEBUG)
     logger.info("API Docs: http://localhost:%s/docs", settings.PORT)
+    await price_update_scheduler.start()
     yield  # app runs here
 
     # --- shutdown ---
+    await price_update_scheduler.shutdown()
     logger.info("Shutting down PriceOrbit API...")
 
 
@@ -105,6 +110,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 #Include Routers 
 app.include_router(main_router, tags=["main"])
 app.include_router(auth_routes_router, prefix="/api/auth", tags=["auth"])
+app.include_router(alert_routes_router, prefix="/api/alerts", tags=["alerts"])
+app.include_router(admin_routes_router, prefix="/api/admin", tags=["admin"])
 app.include_router(product_routes_router, prefix= "/api/products", tags = ["products"])
 app.include_router(store_routes_router, prefix="/api/stores", tags=["stores"])
 

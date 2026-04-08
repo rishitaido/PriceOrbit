@@ -457,10 +457,16 @@
     }
 
     const API = '/api/products';
+    const ADMIN_API = '/api/admin';
     let allProducts = [];
     let filteredProducts = [];
     let skip = 0;
     const limit = 20;
+
+    function getAuthHeaders() {
+      const token = localStorage.getItem('access_token');
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    }
 
     // ── LOAD PRODUCTS ──────────────────────────────────────────────
     async function loadProducts() {
@@ -630,7 +636,12 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
       try {
-        const res = await fetch(`${API}/${id}/update-price`, { method: 'POST' });
+        const res = await fetch(`${API}/${id}/update-price`, {
+          method: 'POST',
+          headers: {
+            ...getAuthHeaders(),
+          }
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
@@ -661,13 +672,19 @@
       status.textContent = '';
 
       try {
-        const res = await fetch(`${API}/batch-update-prices`, { method: 'POST' });
+        const res = await fetch(
+          `${ADMIN_API}/trigger-price-update?limit=50&delay_seconds=2`,
+          {
+            method: 'POST',
+            headers: {
+              ...getAuthHeaders(),
+            }
+          }
+        );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        status.textContent = `✓ Updated ${data.updated_count || 0} products`;
-        await loadProducts();
+        status.textContent = '✓ Manual price-update job started';
       } catch (err) {
-        status.textContent = '✗ Batch update failed — try individual updates';
+        status.textContent = '✗ Manual price-update trigger failed';
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Refresh All Prices';

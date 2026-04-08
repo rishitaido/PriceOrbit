@@ -115,7 +115,7 @@ async def fetch_initial_prices():
 
                 if status == "success":
                     product.current_price = price
-                    product.add_price_to_history(price)
+                    product.add_price_to_history(price, source="kroger_api")
                     prices_fetched += 1
                     collected_prices.append(float(price))
 

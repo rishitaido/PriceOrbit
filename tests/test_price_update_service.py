@@ -45,7 +45,7 @@ async def test_update_price_from_kroger_success(db, monkeypatch):
             assert kroger_product_id == "0001111060903"
             return {"items": [{"price": {"regular": 3.25}}]}
 
-        async def find_kroger_product(self, product_name: str):
+        async def find_kroger_product(self, product_name: str, **kwargs):
             return None
 
     monkeypatch.setattr("app.services.product_service.KrogerService", FakeKrogerService)
@@ -57,7 +57,50 @@ async def test_update_price_from_kroger_success(db, monkeypatch):
     assert payload["new_price"] == Decimal("3.25")
     assert refreshed.current_price == Decimal("3.25")
     assert len(refreshed.price_history or []) == 1
+    assert refreshed.price_history[0]["source"] == "kroger_api"
     assert refreshed.last_price_check is not None
+
+
+@pytest.mark.asyncio
+async def test_update_price_records_snapshot_even_when_price_unchanged(db, monkeypatch):
+    service = make_service(db)
+    product = service.create_product(
+        ProductCreate(
+            name="Kroger Stable Price Test",
+            category="Dairy & Eggs",
+            current_price=Decimal("2.00"),
+            kroger_product_id="0001111060903",
+        )
+    )
+
+    class FakeKrogerService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get_product_details(self, kroger_product_id: str):
+            assert kroger_product_id == "0001111060903"
+            return {"items": [{"price": {"regular": 2.00}}]}
+
+        async def find_kroger_product(self, product_name: str, **kwargs):
+            return None
+
+    monkeypatch.setattr("app.services.product_service.KrogerService", FakeKrogerService)
+
+    payload = await service.update_price_from_kroger(product.id)
+    refreshed = service.get_product_by_id(product.id)
+
+    assert payload["old_price"] == Decimal("2.00")
+    assert payload["new_price"] == Decimal("2.00")
+    assert refreshed.current_price == Decimal("2.00")
+    assert len(refreshed.price_history or []) == 1
+    assert float(refreshed.price_history[0]["price"]) == 2.0
+    assert refreshed.price_history[0]["source"] == "kroger_api"
 
 
 @pytest.mark.asyncio
@@ -85,7 +128,7 @@ async def test_update_price_finds_kroger_match_when_missing_id(db, monkeypatch):
             assert kroger_product_id == "0001111060903"
             return {"items": [{"price": {"regular": 0.69}}]}
 
-        async def find_kroger_product(self, product_name: str):
+        async def find_kroger_product(self, product_name: str, **kwargs):
             return {
                 "product_id": "0001111060903",
                 "confidence": 98.2,
@@ -129,7 +172,7 @@ async def test_update_price_raises_external_error_on_api_failure(db, monkeypatch
         async def get_product_details(self, kroger_product_id: str):
             raise KrogerAPIError("Kroger unavailable")
 
-        async def find_kroger_product(self, product_name: str):
+        async def find_kroger_product(self, product_name: str, **kwargs):
             return None
 
     monkeypatch.setattr("app.services.product_service.KrogerService", FakeKrogerService)
@@ -182,7 +225,7 @@ async def test_update_all_prices_respects_limit(db, monkeypatch):
                 return {"items": [{"price": {"regular": 2.50}}]}
             return {"items": [{"price": {"regular": 1.99}}]}
 
-        async def find_kroger_product(self, product_name: str):
+        async def find_kroger_product(self, product_name: str, **kwargs):
             return {
                 "product_id": "9999999999999",
                 "confidence": 90.0,
@@ -198,3 +241,55 @@ async def test_update_all_prices_respects_limit(db, monkeypatch):
     assert summary["updated"] == 1
     assert summary["failed"] == 0
     assert len(summary["results"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_update_price_checks_alert_triggers(db, monkeypatch):
+    service = make_service(db)
+    product = service.create_product(
+        ProductCreate(
+            name="Alert Hook Test Milk",
+            category="Dairy & Eggs",
+            current_price=Decimal("2.00"),
+            kroger_product_id="0001111060903",
+        )
+    )
+
+    class FakeKrogerService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get_product_details(self, kroger_product_id: str):
+            assert kroger_product_id == "0001111060903"
+            return {"items": [{"price": {"regular": 1.75}}]}
+
+        async def find_kroger_product(self, product_name: str, **kwargs):
+            return None
+
+    class FakePriceAlertService:
+        captured = None
+
+        def __init__(self, _db):
+            pass
+
+        def check_and_log_triggered_alerts(self, *, product_id: int, current_price: Decimal):
+            FakePriceAlertService.captured = {
+                "product_id": product_id,
+                "current_price": current_price,
+            }
+            return []
+
+    monkeypatch.setattr("app.services.product_service.KrogerService", FakeKrogerService)
+    monkeypatch.setattr("app.services.product_service.PriceAlertService", FakePriceAlertService)
+
+    await service.update_price_from_kroger(product.id)
+
+    assert FakePriceAlertService.captured is not None
+    assert FakePriceAlertService.captured["product_id"] == product.id
+    assert FakePriceAlertService.captured["current_price"] == Decimal("1.75")

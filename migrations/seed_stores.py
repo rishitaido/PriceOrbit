@@ -7,10 +7,24 @@ and inserts them into the database.
 - Skips duplicates by kroger_location_id
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
+import os
+import sys
+from pathlib import Path
+from typing import Optional
+
 from sqlalchemy.orm import Session
+
+# Ensure project root is importable when running as a script.
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+# Some local setups store DEBUG=release, which is not parseable as a bool.
+if (os.getenv("DEBUG") or "").strip().lower() == "release":
+    os.environ["DEBUG"] = "False"
 
 from app.core.config import settings
 from app.db.session import SessionLocal
@@ -34,7 +48,7 @@ async def fetch_stores() -> list[dict]:
         return await kroger.search_stores(
             SEED_ZIP_CODE,
             limit=SEED_LIMIT,
-            radius=SEED_RADIUS,
+            radius_miles=SEED_RADIUS,
         )
 
 
@@ -50,60 +64,88 @@ def seed_stores() -> None:
 
     db: Session = SessionLocal()
     inserted = 0
+    updated = 0
     skipped = 0
 
     try:
         for store_data in stores_data:
-            location_id = store_data.get("location_id")
-            address_block = store_data.get("address", {})
-            geo_block = store_data.get("geolocation", {})
+            location_id = store_data.get("kroger_location_id")
+            address = (store_data.get("address") or "").strip()
+            city = (store_data.get("city") or "").strip()
+            state = (store_data.get("state") or "").strip()
+            zip_code = (store_data.get("zip_code") or "").strip()
+            lat = store_data.get("latitude")
+            lng = store_data.get("longitude")
 
-            # Skip stores missing required fields
-            lat = geo_block.get("lat")
-            lng = geo_block.get("lng")
-            address = address_block.get("line1")
-            city = address_block.get("city")
-            state = address_block.get("state")
-            zip_code = address_block.get("zip_code")
-
-            if not all([lat, lng, address, city, state, zip_code]):
+            if (
+                lat is None
+                or lng is None
+                or not address
+                or not city
+                or not state
+                or not zip_code
+            ):
                 logger.warning(
                     "Skipping store '%s' - missing required fields.", store_data.get("name")
                 )
                 skipped += 1
                 continue
 
-            # Skip duplicates by kroger_location_id
+            # Upsert by kroger_location_id when present.
+            existing: Optional[Store] = None
             if location_id:
                 existing = (
                     db.query(Store)
                     .filter(Store.kroger_location_id == location_id)
                     .first()
                 )
-                if existing:
-                    logger.debug("Skipping duplicate store: %s", location_id)
-                    skipped += 1
-                    continue
+            else:
+                # Fallback for entries with missing location ID.
+                existing = (
+                    db.query(Store)
+                    .filter(Store.name == (store_data.get("name") or "Kroger"))
+                    .filter(Store.address == address)
+                    .filter(Store.zip_code == zip_code)
+                    .first()
+                )
 
-            # Serialize hours dict to JSON string for Text column
             hours_raw = store_data.get("hours")
-            hours_str = json.dumps(hours_raw) if hours_raw else None
+            if isinstance(hours_raw, str) or hours_raw is None:
+                hours_str = hours_raw
+            else:
+                hours_str = json.dumps(hours_raw, separators=(",", ":"), sort_keys=True)
 
-            store = Store(
-                name=store_data.get("name", "Kroger"),
-                address=address,
-                city=city,
-                state=state,
-                zip_code=zip_code,
-                kroger_location_id=location_id,
-                latitude=lat,
-                longitude=lng,
-                phone=store_data.get("phone"),
-                hours=hours_str,
-            )
+            name = (store_data.get("name") or "Kroger").strip() or "Kroger"
+            phone = (store_data.get("phone") or "").strip() or None
 
-            db.add(store)
-            inserted += 1
+            if existing is None:
+                store = Store(
+                    name=name,
+                    address=address,
+                    city=city,
+                    state=state[:2],
+                    zip_code=zip_code[:10],
+                    kroger_location_id=location_id,
+                    latitude=float(lat),
+                    longitude=float(lng),
+                    phone=phone,
+                    hours=hours_str,
+                )
+                db.add(store)
+                inserted += 1
+            else:
+                existing.name = name
+                existing.address = address
+                existing.city = city
+                existing.state = state[:2]
+                existing.zip_code = zip_code[:10]
+                existing.latitude = float(lat)
+                existing.longitude = float(lng)
+                existing.phone = phone
+                existing.hours = hours_str
+                if location_id:
+                    existing.kroger_location_id = location_id
+                updated += 1
 
         db.commit()
 
@@ -116,7 +158,8 @@ def seed_stores() -> None:
 
     print("Store seeding complete")
     print(f"Inserted: {inserted}")
-    print(f"Skipped (duplicates or incomplete): {skipped}")
+    print(f"Updated: {updated}")
+    print(f"Skipped (incomplete): {skipped}")
 
 
 if __name__ == "__main__":
