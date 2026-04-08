@@ -7,6 +7,11 @@ from app.schemas.auth_schemas import (
     UserRegister,
     UserResponse,
 )
+from app.schemas.alert_schemas import (
+    PriceAlertCreate,
+    PriceAlertListResponse,
+    PriceAlertResponse,
+)
 from app.schemas.product_schemas import (
     BatchPriceUpdateResponse,
     HealthScoreColor,
@@ -33,6 +38,9 @@ __all__ = [
     "AuthSuccessResponse",
     "BatchPriceUpdateResponse",
     "HealthScoreColor",
+    "PriceAlertCreate",
+    "PriceAlertListResponse",
+    "PriceAlertResponse",
     "PriceHistoryEntry",
     "PriceHistoryResponse",
     "PricePointCreate",

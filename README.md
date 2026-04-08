@@ -43,6 +43,10 @@ PriceOrbit is a FastAPI application for tracking grocery prices, mapping Kroger 
   - `POST /api/auth/register`
   - `POST /api/auth/login`
   - `GET /api/auth/me`
+- Alerts:
+  - `POST /api/alerts`
+  - `GET /api/alerts`
+  - `DELETE /api/alerts/{id}`
 - Products:
   - `GET /api/products`
   - `GET /api/products/{id}`

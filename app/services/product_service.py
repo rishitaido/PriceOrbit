@@ -33,6 +33,7 @@ from app.models.product_store_price_model import ProductStorePrice
 from app.models.store_model import Store
 from app.schemas.product_schemas import ProductCreate, ProductUpdate
 from app.services.kroger_service import KrogerAPIError, KrogerRateLimitError, KrogerService
+from app.services.price_alert_service import PriceAlertService
 from app.services.price_history_service import PriceHistoryService
 
 logger = logging.getLogger(__name__)
@@ -1074,6 +1075,13 @@ class ProductService:
         product.calculate_health_score()
 
         self._commit_refresh_or_raise(product)
+        try:
+            PriceAlertService(self.db).check_and_log_triggered_alerts(
+                product_id=product.id,
+                current_price=new_price,
+            )
+        except Exception as exc:  # pragma: no cover - alert checks should not fail price updates
+            logger.warning("Alert check failed for product id=%s: %s", product.id, exc)
         logger.info(
             "Updated price for product id=%s old=%s new=%s",
             product.id,
