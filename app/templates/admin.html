@@ -699,7 +699,23 @@
     }
 
     // ── BOOT ───────────────────────────────────────────────────────
-    loadProducts();
+    const ADMIN_EMAIL = 'team22@priceorbit.com';
+    const loggedInEmail = localStorage.getItem('user_email') || '';
+
+    if (!localStorage.getItem('access_token') || loggedInEmail !== ADMIN_EMAIL) {
+      document.querySelector('.main-content').innerHTML = `
+        <div class='content-header'><h1>Admin Dashboard</h1></div>
+        <div style='background:white;border:2px dashed #e5e7eb;border-radius:14px;padding:60px 20px;text-align:center;margin-top:20px;'>
+          <i class='fa-solid fa-shield-halved' style='font-size:48px;color:#d1d5db;display:block;margin-bottom:16px;'></i>
+          <p style='font-size:18px;font-weight:600;color:#111;margin-bottom:8px;'>Access Restricted</p>
+          <p style='color:#666;margin-bottom:20px;'>This page is only accessible to administrators.</p>
+          <a href='/products.html' style='background:#111;color:white;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600;'>
+            <i class='fa-solid fa-arrow-left'></i> Back to Dashboard
+          </a>
+        </div>`;
+    } else {
+      loadProducts();
+    }
   </script>
 </body>
 </html>
