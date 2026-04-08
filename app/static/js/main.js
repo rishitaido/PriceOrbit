@@ -240,3 +240,54 @@ window.PriceOrbit = PriceOrbit;
 window.Logger = Logger;
 window.DOM = DOM;
 window.Utils = Utils;
+
+// ============================================
+// MOBILE NAVIGATION - Ticket #52
+// ============================================
+
+function initMobileNav() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'sidebar-overlay';
+  document.body.appendChild(overlay);
+
+  // Create hamburger button and inject into topbar
+  const topbarInner = document.querySelector('.topbar-inner');
+  if (topbarInner) {
+    const hamburger = document.createElement('button');
+    hamburger.className = 'hamburger';
+    hamburger.setAttribute('aria-label', 'Toggle navigation');
+    hamburger.innerHTML = '<i class="fa-solid fa-bars"></i>';
+    topbarInner.insertBefore(hamburger, topbarInner.firstChild);
+
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('active');
+      hamburger.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+      hamburger.innerHTML = '<i class="fa-solid fa-bars"></i>';
+    }
+
+    hamburger.addEventListener('click', () => {
+      sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    });
+
+    overlay.addEventListener('click', closeSidebar);
+
+    // Close on sidebar link click (mobile UX)
+    sidebar.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 900) closeSidebar();
+      });
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initMobileNav);

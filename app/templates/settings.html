@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceOrbit - Settings</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/mobile.css">
+
+  <style>
+    .settings-section {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+
+    .settings-section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .settings-section-title i {
+      color: #666;
+      font-size: 15px;
+    }
+
+    .settings-section-desc {
+      font-size: 13px;
+      color: #999;
+      margin-bottom: 20px;
+    }
+
+    .settings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid #f3f4f6;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .settings-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .settings-row-info {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .settings-row-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 3px;
+    }
+
+    .settings-row-sub {
+      font-size: 12px;
+      color: #999;
+    }
+
+    /* toggle switch */
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #ddd;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform .2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: #5dd1ab;
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
+    /* text inputs */
+    .settings-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #111;
+      outline: none;
+      transition: border-color .2s;
+      margin-top: 8px;
+    }
+
+    .settings-input:focus {
+      border-color: #5dd1ab;
+    }
+
+    .settings-input:disabled {
+      background: #f8f9fa;
+      color: #999;
+    }
+
+    /* save button */
+    .btn-save-settings {
+      background: #111;
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-save-settings:hover {
+      background: #333;
+    }
+
+    .save-banner {
+      display: none;
+      background: #dcfce7;
+      border: 1px solid #bbf7d0;
+      color: #16a34a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .danger-btn {
+      background: white;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .danger-btn:hover {
+      background: #fee2e2;
+    }
+
+    .todo-note {
+      background: #fef9c3;
+      border: 1px solid #fde047;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #854d0e;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .account-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .account-avatar {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #5dd1ab, #3b82f6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .account-details {
+      flex: 1;
+    }
+
+    .account-email {
+      font-size: 15px;
+      font-weight: 600;
+      color: #111;
+    }
+
+    .account-since {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <img src="/static/images/logo.png" alt="PriceOrbit Logo">
+      </div>
+      <div class="topbar-right">
+        <a href="/alerts" class="btn-api-docs">
+          <i class="fa-solid fa-bell"></i> Alerts
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <ul>
+        <li>
+          <a href="/products.html">
+            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+            <span class="text">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="/tracked">
+            <span class="icon"><i class="fa-solid fa-box"></i></span>
+            <span class="text">Tracked Products</span>
+          </a>
+        </li>
+        <li>
+          <a href="/stores">
+            <span class="icon"><i class="fa-solid fa-store"></i></span>
+            <span class="text">Store Locator</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin">
+            <span class="icon"><i class="fa-solid fa-shield-halved"></i></span>
+            <span class="text">Admin</span>
+          </a>
+        </li>
+        <li>
+          <a href="/alerts">
+            <span class="icon"><i class="fa-solid fa-bell"></i></span>
+            <span class="text">Alerts</span>
+          </a>
+        </li>
+        <li>
+          <a href="/settings" class="active">
+            <span class="icon"><i class="fa-solid fa-gear"></i></span>
+            <span class="text">Settings</span>
+          </a>
+        </li>
+        <li style="margin-top: auto; padding-top: 16px; border-top: 1px solid #eee;">
+          <a href="#" onclick="logout()" style="color: #dc2626;">
+            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+            <span class="text">Logout</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-header">
+        <h1>Settings</h1>
+        <p>Manage your account and notification preferences</p>
+      </div>
+
+      <!-- Success banner -->
+      <div class="save-banner" id="save-banner">
+        <i class="fa-solid fa-circle-check"></i> Settings saved successfully!
+      </div>
+
+      <!-- TODO note -->
+      <div class="todo-note">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Email and text notifications will be active once the backend is connected. Your preferences are saved locally for now.</span>
+      </div>
+
+      <!-- Account Info -->
+      <div class="settings-section">
+        <div class="settings-section-title">
+          <i class="fa-solid fa-user"></i> Account
+        </div>
+        <div class="settings-section-desc">Your account information</div>
+
+        <div class="account-info">
+          <div class="account-avatar" id="account-avatar">?</div>
+          <div class="account-details">
+            <div class="account-email" id="account-email">—</div>
+            <div class="account-since">PriceOrbit member</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Preferences -->
+      <div class="settings-section">
+        <div class="settings-section-title">
+          <i class="fa-solid fa-bell"></i> Notification Preferences
+        </div>
+        <div class="settings-section-desc">Choose how you want to receive price alerts</div>
+
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label"><i class="fa-solid fa-envelope" style="color:#3b82f6;"></i> Email Notifications</div>
+            <div class="settings-row-sub">Receive alerts to your email when a tracked product drops below your target price</div>
+            <input type="email" class="settings-input" id="notify-email" placeholder="your@email.com" />
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-email" onchange="toggleEmailInput()" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label"><i class="fa-solid fa-comment-sms" style="color:#5dd1ab;"></i> Text Notifications</div>
+            <div class="settings-row-sub">Receive SMS alerts when a tracked product hits your target price</div>
+            <input type="tel" class="settings-input" id="notify-phone" placeholder="+1 (555) 000-0000" />
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-text" onchange="togglePhoneInput()" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Alert Preferences -->
+      <div class="settings-section">
+        <div class="settings-section-title">
+          <i class="fa-solid fa-sliders"></i> Alert Preferences
+        </div>
+        <div class="settings-section-desc">Configure when you want to be notified</div>
+
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Price Drop Alerts</div>
+            <div class="settings-row-sub">Alert me when a product drops below my target price</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-price-drop" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Health Score Alerts</div>
+            <div class="settings-row-sub">Alert me when a tracked product's health score drops below 40 (High Risk)</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-health" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Weekly Summary</div>
+            <div class="settings-row-sub">Receive a weekly digest of price changes for your tracked products</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="toggle-weekly" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Save -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <button class="btn-save-settings" onclick="saveSettings()">
+          <i class="fa-solid fa-floppy-disk"></i> Save Settings
+        </button>
+
+        <!-- Danger zone -->
+        <button class="danger-btn" onclick="clearAllData()">
+          <i class="fa-solid fa-trash"></i> Clear All My Data
+        </button>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+  <script>
+    function logout() {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user_email');
+      localStorage.removeItem('user_name');
+      window.location.href = '/';
+    }
+
+    function getUserKey(suffix) {
+      const email = localStorage.getItem('user_email') || 'guest';
+      return `${suffix}_${email}`;
+    }
+
+    function getSettings() {
+      try { return JSON.parse(localStorage.getItem(getUserKey('settings')) || '{}'); }
+      catch { return {}; }
+    }
+
+    function saveSettings() {
+      const settings = {
+        notify_email:   document.getElementById('toggle-email').checked,
+        email_address:  document.getElementById('notify-email').value.trim(),
+        notify_text:    document.getElementById('toggle-text').checked,
+        phone_number:   document.getElementById('notify-phone').value.trim(),
+        alert_price_drop:   document.getElementById('toggle-price-drop').checked,
+        alert_health_score: document.getElementById('toggle-health').checked,
+        alert_weekly:       document.getElementById('toggle-weekly').checked,
+      };
+
+      localStorage.setItem(getUserKey('settings'), JSON.stringify(settings));
+
+      // TODO: Connect to PATCH /api/users/me/settings when backend supports it
+      // await fetch('/api/users/me/settings', {
+      //   method: 'PATCH',
+      //   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+      //   body: JSON.stringify(settings)
+      // });
+
+      const banner = document.getElementById('save-banner');
+      banner.style.display = 'flex';
+      setTimeout(() => { banner.style.display = 'none'; }, 3000);
+    }
+
+    function toggleEmailInput() {
+      const checked = document.getElementById('toggle-email').checked;
+      document.getElementById('notify-email').disabled = !checked;
+    }
+
+    function togglePhoneInput() {
+      const checked = document.getElementById('toggle-text').checked;
+      document.getElementById('notify-phone').disabled = !checked;
+    }
+
+    function clearAllData() {
+      if (!confirm('This will clear all your tracked products, alerts, and settings. Are you sure?')) return;
+      const email = localStorage.getItem('user_email') || 'guest';
+      ['tracked', 'alerts', 'settings'].forEach(k => localStorage.removeItem(`${k}_${email}`));
+      alert('All your data has been cleared.');
+      window.location.href = '/products.html';
+    }
+
+    // ── BOOT ─────────────────────────────────────────────────────────
+    if (!localStorage.getItem('access_token')) {
+      window.location.href = '/';
+    }
+
+    // Load account info
+    const email = localStorage.getItem('user_email') || '';
+    document.getElementById('account-email').textContent = email || 'Not logged in';
+    document.getElementById('account-avatar').textContent = email ? email[0].toUpperCase() : '?';
+
+    // Load saved settings
+    const saved = getSettings();
+    if (saved.notify_email   !== undefined) document.getElementById('toggle-email').checked       = saved.notify_email;
+    if (saved.notify_text    !== undefined) document.getElementById('toggle-text').checked        = saved.notify_text;
+    if (saved.email_address)               document.getElementById('notify-email').value         = saved.email_address;
+    if (saved.phone_number)                document.getElementById('notify-phone').value         = saved.phone_number;
+    if (saved.alert_price_drop !== undefined) document.getElementById('toggle-price-drop').checked = saved.alert_price_drop;
+    if (saved.alert_health_score !== undefined) document.getElementById('toggle-health').checked  = saved.alert_health_score;
+    if (saved.alert_weekly !== undefined)  document.getElementById('toggle-weekly').checked      = saved.alert_weekly;
+
+    // Set initial disabled state
+    toggleEmailInput();
+    togglePhoneInput();
+  </script>
+</body>
+</html>

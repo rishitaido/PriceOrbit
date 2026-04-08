@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriceOrbit - Alerts</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/mobile.css">
+
+  <style>
+    .alert-card {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      transition: box-shadow 0.2s;
+    }
+
+    .alert-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    .alert-card.disabled {
+      opacity: 0.55;
+    }
+
+    .alert-product-info {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .alert-product-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 4px;
+    }
+
+    .alert-product-meta {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .alert-price-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 160px;
+    }
+
+    .alert-price-label {
+      font-size: 12px;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .alert-price-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .alert-price-input-wrap span {
+      font-size: 15px;
+      font-weight: 600;
+      color: #111;
+    }
+
+    .alert-price-input {
+      width: 90px;
+      padding: 7px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #111;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .alert-price-input:focus {
+      border-color: #5dd1ab;
+    }
+
+    .alert-notify-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 140px;
+    }
+
+    .alert-notify-label {
+      font-size: 12px;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .notify-toggles {
+      display: flex;
+      gap: 8px;
+    }
+
+    .notify-btn {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      background: white;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #666;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .notify-btn.active {
+      background: #111;
+      color: white;
+      border-color: #111;
+    }
+
+    .notify-btn.active.email-btn {
+      background: #3b82f6;
+      border-color: #3b82f6;
+    }
+
+    .notify-btn.active.text-btn {
+      background: #5dd1ab;
+      border-color: #5dd1ab;
+    }
+
+    /* toggle switch */
+    .toggle-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toggle-label {
+      font-size: 11px;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #ddd;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform .2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: #5dd1ab;
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
+    /* save button */
+    .btn-save-alert {
+      background: #111;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .btn-save-alert:hover {
+      background: #333;
+    }
+
+    .btn-save-alert:disabled {
+      opacity: .5;
+      pointer-events: none;
+    }
+
+    .save-feedback {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .save-ok  { color: #16a34a; }
+    .save-err { color: #dc2626; }
+
+    /* empty state */
+    .alerts-empty {
+      background: white;
+      border: 2px dashed #e5e7eb;
+      border-radius: 14px;
+      padding: 60px 20px;
+      text-align: center;
+      color: #9ca3af;
+    }
+
+    .alerts-empty i {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+
+    .alerts-empty p {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .btn-browse {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #111;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .btn-browse:hover { opacity: .85; }
+
+    .todo-note {
+      background: #fef9c3;
+      border: 1px solid #fde047;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #854d0e;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .alert-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <img src="/static/images/logo.png" alt="PriceOrbit Logo">
+      </div>
+      <div class="topbar-right">
+        <a href="/settings" class="btn-api-docs">
+          <i class="fa-solid fa-gear"></i> Settings
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <ul>
+        <li>
+          <a href="/products.html">
+            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+            <span class="text">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="/tracked">
+            <span class="icon"><i class="fa-solid fa-box"></i></span>
+            <span class="text">Tracked Products</span>
+          </a>
+        </li>
+        <li>
+          <a href="/stores">
+            <span class="icon"><i class="fa-solid fa-store"></i></span>
+            <span class="text">Store Locator</span>
+          </a>
+        </li>
+        <li>
+          <a href="/admin">
+            <span class="icon"><i class="fa-solid fa-shield-halved"></i></span>
+            <span class="text">Admin</span>
+          </a>
+        </li>
+        <li>
+          <a href="/alerts" class="active">
+            <span class="icon"><i class="fa-solid fa-bell"></i></span>
+            <span class="text">Alerts</span>
+          </a>
+        </li>
+        <li>
+          <a href="/settings">
+            <span class="icon"><i class="fa-solid fa-gear"></i></span>
+            <span class="text">Settings</span>
+          </a>
+        </li>
+        <li style="margin-top: auto; padding-top: 16px; border-top: 1px solid #eee;">
+          <a href="#" onclick="logout()" style="color: #dc2626;">
+            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+            <span class="text">Logout</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-header">
+        <h1>Price Alerts</h1>
+        <p>Get notified when a product drops below your target price</p>
+      </div>
+
+      <!-- TODO note -->
+      <div class="todo-note">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Alert notifications (email/text) will be active once the backend is connected. Preferences are saved locally for now.</span>
+      </div>
+
+      <!-- Stats -->
+      <div class="dashboard-stats" style="margin-bottom: 20px;">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #f59e0b;">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Active Alerts</p>
+            <p class="stat-value" id="stat-active">0</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #3b82f6;">
+            <i class="fa-solid fa-envelope"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Notify Via</p>
+            <p class="stat-value" id="stat-notify" style="font-size:16px; padding-top:4px;">—</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #5dd1ab;">
+            <i class="fa-solid fa-bookmark"></i>
+          </div>
+          <div class="stat-info">
+            <p class="stat-label">Tracked Products</p>
+            <p class="stat-value" id="stat-tracked">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="alerts-loading" class="loading-state">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <p>Loading your tracked products...</p>
+      </div>
+
+      <!-- Alerts list -->
+      <div id="alerts-list"></div>
+
+    </main>
+  </div>
+
+  <script src="/static/js/main.js"></script>
+  <script>
+    function logout() {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user_email');
+      localStorage.removeItem('user_name');
+      window.location.href = '/';
+    }
+
+    // ── STORAGE HELPERS ───────────────────────────────────────────────
+    function getUserKey(suffix) {
+      const email = localStorage.getItem('user_email') || 'guest';
+      return `${suffix}_${email}`;
+    }
+
+    function getTracked() {
+      try { return JSON.parse(localStorage.getItem(getUserKey('tracked')) || '[]'); }
+      catch { return []; }
+    }
+
+    function getAlerts() {
+      try { return JSON.parse(localStorage.getItem(getUserKey('alerts')) || '{}'); }
+      catch { return {}; }
+    }
+
+    function saveAlerts(alerts) {
+      localStorage.setItem(getUserKey('alerts'), JSON.stringify(alerts));
+    }
+
+    function getSettings() {
+      try { return JSON.parse(localStorage.getItem(getUserKey('settings')) || '{}'); }
+      catch { return {}; }
+    }
+
+    // ── RENDER ────────────────────────────────────────────────────────
+    function renderAlerts(products) {
+      const trackedIds = getTracked();
+      const alerts     = getAlerts();
+      const settings   = getSettings();
+      const listEl     = document.getElementById('alerts-list');
+
+      const tracked = products.filter(p => trackedIds.includes(p.id));
+
+      // Stats
+      const activeCount = Object.values(alerts).filter(a => a.enabled).length;
+      document.getElementById('stat-active').textContent  = activeCount;
+      document.getElementById('stat-tracked').textContent = tracked.length;
+      const notifyMethod = settings.notify_email && settings.notify_text ? 'Email & Text'
+        : settings.notify_email ? 'Email'
+        : settings.notify_text  ? 'Text'
+        : 'Not set';
+      document.getElementById('stat-notify').textContent = notifyMethod;
+
+      if (!tracked.length) {
+        listEl.innerHTML = `
+          <div class="alerts-empty">
+            <i class="fa-solid fa-bell-slash"></i>
+            <p>You haven't tracked any products yet.</p>
+            <a href="/tracked" class="btn-browse">
+              <i class="fa-solid fa-bookmark"></i> Go to Tracked Products
+            </a>
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = tracked.map(p => {
+        const alert      = alerts[p.id] || { enabled: false, target_price: '', notify_email: settings.notify_email || false, notify_text: settings.notify_text || false };
+        const price      = p.current_price != null ? Number(p.current_price).toFixed(2) : '';
+        const isDisabled = !alert.enabled;
+
+        return `
+          <div class="alert-card ${isDisabled ? 'disabled' : ''}" id="alert-card-${p.id}">
+
+            <div class="alert-product-info">
+              <div class="alert-product-name">${p.name}</div>
+              <div class="alert-product-meta">
+                ${p.category || 'Uncategorized'} &nbsp;·&nbsp;
+                Current: ${price ? '$' + price : 'N/A'}
+              </div>
+            </div>
+
+            <div class="alert-price-section">
+              <div class="alert-price-label">Alert me when price drops below</div>
+              <div class="alert-price-input-wrap">
+                <span>$</span>
+                <input
+                  class="alert-price-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value="${alert.target_price || ''}"
+                  id="price-${p.id}"
+                />
+              </div>
+            </div>
+
+            <div class="alert-notify-section">
+              <div class="alert-notify-label">Notify via</div>
+              <div class="notify-toggles">
+                <button class="notify-btn email-btn ${alert.notify_email ? 'active' : ''}"
+                  id="email-btn-${p.id}"
+                  onclick="toggleNotify(${p.id}, 'email')">
+                  <i class="fa-solid fa-envelope"></i> Email
+                </button>
+                <button class="notify-btn text-btn ${alert.notify_text ? 'active' : ''}"
+                  id="text-btn-${p.id}"
+                  onclick="toggleNotify(${p.id}, 'text')">
+                  <i class="fa-solid fa-comment-sms"></i> Text
+                </button>
+              </div>
+            </div>
+
+            <div class="toggle-wrap">
+              <div class="toggle-label">Active</div>
+              <label class="toggle">
+                <input type="checkbox" ${alert.enabled ? 'checked' : ''}
+                  onchange="toggleAlert(${p.id}, this.checked)" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:flex-start; gap:4px;">
+              <button class="btn-save-alert" onclick="saveAlert(${p.id})">
+                <i class="fa-solid fa-floppy-disk"></i> Save
+              </button>
+              <span class="save-feedback" id="feedback-${p.id}"></span>
+            </div>
+
+          </div>`;
+      }).join('');
+    }
+
+    // ── TOGGLE ALERT ON/OFF ───────────────────────────────────────────
+    function toggleAlert(id, enabled) {
+      const alerts = getAlerts();
+      if (!alerts[id]) alerts[id] = {};
+      alerts[id].enabled = enabled;
+      saveAlerts(alerts);
+
+      const card = document.getElementById(`alert-card-${id}`);
+      if (card) card.classList.toggle('disabled', !enabled);
+
+      updateActiveCount();
+    }
+
+    // ── TOGGLE EMAIL/TEXT ─────────────────────────────────────────────
+    function toggleNotify(id, type) {
+      const btn = document.getElementById(`${type}-btn-${id}`);
+      btn.classList.toggle('active');
+    }
+
+    // ── SAVE ALERT ────────────────────────────────────────────────────
+    function saveAlert(id) {
+      const alerts      = getAlerts();
+      const targetPrice = document.getElementById(`price-${id}`).value;
+      const emailActive = document.getElementById(`email-btn-${id}`).classList.contains('active');
+      const textActive  = document.getElementById(`text-btn-${id}`).classList.contains('active');
+      const feedback    = document.getElementById(`feedback-${id}`);
+
+      if (!alerts[id]) alerts[id] = {};
+      alerts[id].target_price  = targetPrice;
+      alerts[id].notify_email  = emailActive;
+      alerts[id].notify_text   = textActive;
+
+      saveAlerts(alerts);
+
+      // TODO: Connect to POST /api/alerts endpoint to save on backend and activate notifications
+      // const res = await fetch('/api/alerts', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+      //   body: JSON.stringify({ product_id: id, target_price: parseFloat(targetPrice), notify_email: emailActive, notify_text: textActive })
+      // });
+
+      feedback.textContent = '✓ Saved';
+      feedback.className   = 'save-feedback save-ok';
+      setTimeout(() => { feedback.textContent = ''; }, 2500);
+    }
+
+    function updateActiveCount() {
+      const active = Object.values(getAlerts()).filter(a => a.enabled).length;
+      document.getElementById('stat-active').textContent = active;
+    }
+
+    // ── LOAD ──────────────────────────────────────────────────────────
+    async function load() {
+      try {
+        const res = await fetch('/api/products/?limit=100&skip=0');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        document.getElementById('alerts-loading').style.display = 'none';
+        renderAlerts(data.products || []);
+      } catch {
+        document.getElementById('alerts-loading').style.display = 'none';
+        document.getElementById('alerts-list').innerHTML = `
+          <div class="error-state">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <p>Could not load products. Make sure the server is running.</p>
+          </div>`;
+      }
+    }
+
+    // ── BOOT ──────────────────────────────────────────────────────────
+    if (!localStorage.getItem('access_token')) {
+      window.location.href = '/';
+    }
+
+    load();
+  </script>
+</body>
+</html>

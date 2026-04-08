@@ -845,30 +845,53 @@ body {
 ========================= */
 
 .btn-view-details {
-  background: #22c55e;
+  background: #111;
   color: white;
   border: none;
-  padding: 2px 8px;
-  border-radius: 8px; /* shape */
-  font-size: 11px;
-  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 10px rgba(34, 197, 94, 0.25);
+  gap: 6px;
+  transition: all 0.2s ease;
 }
 
 .btn-view-details:hover {
+  background: #333;
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(34, 197, 94, 0.35);
-  opacity: 0.95;
 }
 
 .btn-view-details:active {
   transform: translateY(0);
-  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.25);
+  background: #111;
+}
+/* =========================
+   TRACK BUTTON
+========================= */
+.btn-track {
+  background: white;
+  border: 1px solid #ddd;
+  color: #666;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-track:hover {
+  border-color: #5dd1ab;
+  color: #5dd1ab;
+}
+
+.btn-track .fa-solid {
+  color: #5dd1ab;
 }

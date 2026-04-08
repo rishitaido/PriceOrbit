@@ -1,0 +1,376 @@
+
+/* ── HAMBURGER BUTTON ── */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: #111;
+  font-size: 20px;
+  transition: background 0.2s;
+}
+
+.hamburger:hover {
+  background: #f3f4f6;
+}
+
+/* Overlay behind open sidebar */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 150;
+}
+
+.sidebar-overlay.active {
+  display: block;
+}
+
+/* =========================
+   TABLET (max 900px)
+========================= */
+@media (max-width: 900px) {
+
+  /* Hamburger on the far left */
+  .hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Topbar: force single row, hamburger left, logo next to it */
+  .topbar {
+    height: 56px !important;
+  }
+
+  .topbar-inner {
+    height: 56px !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+  }
+
+  .logo img {
+    height: 40px;
+  }
+
+  .topbar-right {
+    display: none !important;
+  }
+
+  .topbar-right {
+    display: none;
+  }
+
+  /* Sidebar slides in from left */
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: -260px;
+    width: 240px !important;
+    height: 100vh !important;
+    z-index: 200;
+    background: white;
+    border-right: 1px solid #eee !important;
+    border-bottom: none !important;
+    padding: 80px 12px 16px;
+    transition: left 0.25s ease;
+    box-shadow: none;
+  }
+
+  .sidebar.open {
+    left: 0;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+  }
+
+  /* Main content full width */
+  .main-content {
+    margin-left: 0 !important;
+    padding: 80px 16px 24px;
+  }
+
+  /* Layout padding reset */
+  .layout {
+    padding-top: 0;
+  }
+
+  /* Dashboard stats: 2 columns */
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Controls bar stacks */
+  .controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filter-group {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .filter-group select {
+    flex: 1;
+  }
+
+  /* Product items stack */
+  .product-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .product-health {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .product-actions {
+    width: 100%;
+  }
+
+  .btn-view-details {
+    width: 100%;
+    justify-content: center;
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  /* Stores layout stacks */
+  .stores-layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .stores-panel {
+    width: 100% !important;
+    min-width: unset !important;
+    max-height: 300px;
+  }
+
+  .map-container {
+    height: 380px;
+    border-radius: 12px;
+  }
+
+  /* Product detail grid: single column */
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   MOBILE (max 600px)
+========================= */
+@media (max-width: 600px) {
+
+  /* Topbar */
+  .topbar-inner {
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  .logo img {
+    height: 42px;
+  }
+
+  /* Dashboard stats: 1 column */
+  .dashboard-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  /* Content header */
+  .content-header h1 {
+    font-size: 22px;
+  }
+
+  /* Product items */
+  .product-item {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .product-name {
+    font-size: 15px;
+  }
+
+  .product-meta {
+    font-size: 12px;
+    gap: 10px;
+  }
+
+  .product-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .product-icon i {
+    font-size: 22px;
+  }
+
+  /* Map container shorter on small phones */
+  .map-container {
+    height: 300px;
+  }
+
+  /* Stores panel */
+  .stores-panel {
+    max-height: 260px;
+  }
+
+  /* Store map modal */
+  .modal-box {
+    max-height: 95vh;
+    border-radius: 12px;
+  }
+
+  .modal-body {
+    flex-direction: column;
+  }
+
+  #store-price-map {
+    min-height: 240px;
+  }
+
+  .modal-store-list {
+    width: 100%;
+    min-width: unset;
+    border-left: none;
+    border-top: 1px solid #eee;
+    max-height: 180px;
+  }
+
+  /* Product detail page */
+  .detail-card {
+    padding: 16px;
+  }
+
+  .detail-product-name {
+    font-size: 22px;
+  }
+
+  .product-header-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .product-title-section {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .detail-product-category::before {
+    display: none;
+  }
+
+  .health-score-large {
+    justify-content: center;
+  }
+
+  .current-price-large span:first-child {
+    font-size: 36px;
+  }
+
+  .price-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stats-grid-detail {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .card-title {
+    font-size: 15px;
+  }
+
+  /* Buttons row on price card */
+  #update-price-btn,
+  #find-in-stores-btn {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  /* Landing page */
+  .landing-main {
+    flex-direction: column;
+    gap: 30px;
+    padding-top: 100px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .welcome-text h1 {
+    font-size: 28px;
+  }
+
+  .welcome-text p {
+    font-size: 15px;
+  }
+
+  .login-box {
+    padding: 24px 20px;
+  }
+
+  /* Register page */
+  .register-card {
+    padding: 28px 20px;
+  }
+
+  /* About section */
+  .about-section {
+    padding: 50px 20px;
+  }
+
+  .about-section h2 {
+    font-size: 24px;
+  }
+
+  .about-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* =========================
+   SMALL PHONES (max 400px)
+========================= */
+@media (max-width: 400px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .price-stats-grid,
+  .stats-grid-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .map-legend {
+    gap: 8px;
+    font-size: 11px;
+  }
+}
