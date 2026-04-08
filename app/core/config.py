@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     KROGER_CLIENT_SECRET: str
     KROGER_BASE_URL: str  = "https://api.kroger.com/v1"
     KROGER_AUTH_URL: str = "https://api.kroger.com/v1/connect/oauth2/token"
+    KROGER_LOCATION_ID: str = "01400943"
     KROGER_MIN_MATCH_CONFIDENCE: float = 70.0
     KROGER_CERT_MIN_MATCH_CONFIDENCE: float = 55.0
     KROGER_ALIAS_MIN_MATCH_CONFIDENCE: float = 45.0

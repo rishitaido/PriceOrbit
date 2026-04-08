@@ -4,6 +4,47 @@ const API_BASE = "/api/products";
 let priceChart = null;
 let activeProductId = null;
 
+// ── TRACKING (localStorage) ──────────────────────────────────────────────────
+function getTrackedKey() {
+  const email = localStorage.getItem("user_email") || "guest";
+  return "tracked_" + email;
+}
+
+function getTracked() {
+  try { return JSON.parse(localStorage.getItem(getTrackedKey()) || "[]"); }
+  catch { return []; }
+}
+
+function isTracked(id) {
+  return getTracked().includes(Number(id));
+}
+
+function toggleTrack(id) {
+  id = Number(id);
+  let tracked = getTracked();
+  if (tracked.includes(id)) {
+    tracked = tracked.filter(t => t !== id);
+  } else {
+    tracked.push(id);
+  }
+  localStorage.setItem(getTrackedKey(), JSON.stringify(tracked));
+  updateTrackButton(id);
+}
+
+function updateTrackButton(id) {
+  const btn = document.querySelector(".btn-track-product");
+  if (!btn) return;
+  if (isTracked(id)) {
+    btn.innerHTML = '<i class="fa-solid fa-bookmark"></i> Tracked';
+    btn.style.background = "#111";
+    btn.style.color = "#fff";
+  } else {
+    btn.innerHTML = '<i class="fa-solid fa-plus"></i> Track Product';
+    btn.style.background = "";
+    btn.style.color = "";
+  }
+}
+
 function getProductId() {
   const match = window.location.pathname.match(/\/products?\/(\d+)/);
   return match ? match[1] : null;
@@ -22,6 +63,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function bindActions() {
+  const trackBtn = document.querySelector(".btn-track-product");
+  if (trackBtn) {
+    trackBtn.addEventListener("click", () => {
+      if (activeProductId) toggleTrack(activeProductId);
+    });
+  }
+
   const updateButton = document.getElementById("update-price-btn");
   if (!updateButton) return;
 
@@ -95,6 +143,7 @@ async function loadProductDetail(productId, { showLoading: shouldShowLoading }) 
 }
 
 function displayProductInfo(product, stats = null) {
+  updateTrackButton(product.id);
   document.getElementById("product-name").textContent = product.name;
   document.getElementById("product-category").textContent = product.category || "Uncategorized";
 

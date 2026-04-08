@@ -43,10 +43,10 @@ class ProductService:
     """Service class for Product CRUD and product-domain workflows."""
 
     CATEGORY_COMPATIBILITY_KEYWORDS = {
-        "Fresh Produce": {"produce"},
-        "Dairy & Eggs": {"dairy", "egg"},
-        "Meat & Seafood": {"meat", "seafood"},
-        "Pantry Staples": {"pantry", "grocery", "baking", "canned", "pasta", "rice"},
+        "Fresh Produce": {"produce", "vegetable", "fruit", "herb", "salad", "greens", "floral"},
+        "Dairy & Eggs": {"dairy", "egg", "milk", "cheese", "yogurt", "butter", "cream"},
+        "Meat & Seafood": {"meat", "seafood", "beef", "chicken", "pork", "poultry", "fish", "deli"},
+        "Pantry Staples": {"pantry", "grocery", "baking", "canned", "pasta", "rice", "condiment", "oil", "vinegar", "spice", "seasoning", "bean", "grain"},
         "Frozen Foods": {"frozen"},
     }
 
@@ -240,7 +240,14 @@ class ProductService:
         items = payload.get("items") or []
         item = items[0] if items else {}
 
-        candidate_name = self._build_size_aware_name(product.name, item.get("size"))
+        # Use Kroger's actual product description as the name base so the
+        # displayed name matches what Kroger shows on their website.
+        kroger_description = str(payload.get("description") or "").strip()
+        base_name = kroger_description if kroger_description else re.sub(
+            r"\s*\([^)]*\)\s*$", "", (product.name or "").strip()
+        ).strip() or product.name
+
+        candidate_name = self._build_size_aware_name(base_name, item.get("size"))
         existing = (
             self.db.query(Product)
             .filter(Product.name == candidate_name, Product.id != product.id)
@@ -251,9 +258,8 @@ class ProductService:
         else:
             product.name = f"{candidate_name} [{product.id}]"
 
-        description = str(payload.get("description") or "").strip()
-        if description:
-            product.description = description
+        if kroger_description:
+            product.description = kroger_description
 
     @staticmethod
     def parse_store_ids_csv(store_ids: Optional[str]) -> Optional[List[int]]:
@@ -481,6 +487,7 @@ class ProductService:
             async with KrogerService(
                 client_id=settings.KROGER_CLIENT_ID,
                 client_secret=settings.KROGER_CLIENT_SECRET,
+                location_id=settings.KROGER_LOCATION_ID,
             ) as kroger:
                 if not product.kroger_product_id:
                     try:
