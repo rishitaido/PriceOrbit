@@ -202,12 +202,21 @@
     }
 
     function getTracked() {
-      try { return JSON.parse(localStorage.getItem(getTrackedKey()) || '[]'); }
+      try {
+        const raw = JSON.parse(localStorage.getItem(getTrackedKey()) || '[]');
+        const unique = new Set();
+        (Array.isArray(raw) ? raw : []).forEach((id) => {
+          const numericId = Number(id);
+          if (Number.isInteger(numericId) && numericId > 0) unique.add(numericId);
+        });
+        return Array.from(unique);
+      }
       catch { return []; }
     }
 
     function removeTracked(id) {
-      const tracked = getTracked().filter(t => t !== Number(id));
+      const target = Number(id);
+      const tracked = getTracked().filter(t => t !== target);
       localStorage.setItem(getTrackedKey(), JSON.stringify(tracked));
     }
 
@@ -234,15 +243,16 @@
     function renderTracked(products) {
       const list = document.getElementById('tracked-list');
       const trackedIds = getTracked();
+      const trackedSet = new Set(trackedIds.map((id) => Number(id)));
 
       // Filter to only tracked ones and apply search
       const q = document.getElementById('tracked-search').value.toLowerCase();
       const filtered = products
-        .filter(p => trackedIds.includes(p.id))
+        .filter(p => trackedSet.has(Number(p.id)))
         .filter(p => !q || p.name.toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q));
 
       // Stats
-      document.getElementById('stat-tracking').textContent = trackedIds.length;
+      document.getElementById('stat-tracking').textContent = trackedSet.size;
       const avgHealth = filtered.length
         ? Math.round(filtered.reduce((s, p) => s + Number(p.health_score || 0), 0) / filtered.length)
         : '—';
@@ -325,6 +335,17 @@
     // ── LOAD ─────────────────────────────────────────────────────────
     let cachedProducts = [];
 
+    async function fetchTrackedProductsById(trackedIds) {
+      const requests = trackedIds.map((id) =>
+        fetch(`/api/products/${encodeURIComponent(id)}`)
+          .then((response) => (response.ok ? response.json() : null))
+          .catch(() => null)
+      );
+
+      const products = await Promise.all(requests);
+      return products.filter(Boolean);
+    }
+
     async function loadAndRender() {
       const trackedIds = getTracked();
 
@@ -341,10 +362,7 @@
       }
 
       try {
-        const res = await fetch('/api/products/?limit=100&skip=0');
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        cachedProducts = data.products || [];
+        cachedProducts = await fetchTrackedProductsById(trackedIds);
         document.getElementById('tracked-loading').style.display = 'none';
         renderTracked(cachedProducts);
       } catch {

@@ -6,6 +6,44 @@
 /* =========================
    FIND IN STORES BUTTON
 ========================= */
+#btn-track-product {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(180deg, #1f1f1f 0%, #0b0b0b 100%);
+  color: #fff;
+  border: 1px solid #222;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+}
+
+#btn-track-product:hover {
+  background: linear-gradient(180deg, #2a2a2a 0%, #111 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+#btn-track-product:active {
+  transform: translateY(0);
+}
+
+#btn-track-product:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+#btn-track-product.is-tracked {
+  background: linear-gradient(180deg, #101010 0%, #000 100%);
+  border-color: #2f2f2f;
+}
+
 .btn-find-stores {
   background: #5dd1ab;
   color: white;

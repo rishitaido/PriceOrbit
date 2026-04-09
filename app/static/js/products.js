@@ -1,42 +1,4 @@
 // products.js - product listing, filtering, search, and pagination
-// ── TRACKED PRODUCTS (localStorage) ──────────────────────────────────────────
-
-function getTrackedKey() {
-  const email = localStorage.getItem("user_email") || "guest";
-  return "tracked_" + email;
-}
-
-function getTracked() {
-  try {
-    return JSON.parse(localStorage.getItem(getTrackedKey()) || "[]");
-  } catch { return []; }
-}
-
-function saveTracked(ids) {
-  localStorage.setItem(getTrackedKey(), JSON.stringify(ids));
-}
-
-function isTracked(id) {
-  return getTracked().includes(Number(id));
-}
-
-function toggleTrack(id, btn) {
-  id = Number(id);
-  let tracked = getTracked();
-  if (tracked.includes(id)) {
-    tracked = tracked.filter(t => t !== id);
-    btn.innerHTML = '<i class="fa-regular fa-bookmark"></i>';
-    btn.title = "Track this product";
-  } else {
-    tracked.push(id);
-    btn.innerHTML = '<i class="fa-solid fa-bookmark"></i>';
-    btn.title = "Untrack this product";
-  }
-  saveTracked(tracked);
-}
-
-
-
 const API_BASE = "/api/products";
 
 let allProducts = [];
@@ -194,9 +156,6 @@ function createProductCard(product) {
 
       <div class="product-actions" style="display:flex; gap:8px; align-items:center;">
         <button class="btn-view-details" data-product-id="${product.id}">View Details <i class="fa-solid fa-arrow-right"></i></button>
-        <button class="btn-track" onclick="toggleTrack(${product.id}, this)" title="Track this product">
-          ${isTracked(product.id) ? '<i class="fa-solid fa-bookmark"></i>' : '<i class="fa-regular fa-bookmark"></i>'}
-        </button>
       </div>
     </div>
   `;
