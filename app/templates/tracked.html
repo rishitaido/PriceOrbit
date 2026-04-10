@@ -202,12 +202,21 @@
     }
 
     function getTracked() {
-      try { return JSON.parse(localStorage.getItem(getTrackedKey()) || '[]'); }
+      try {
+        const raw = JSON.parse(localStorage.getItem(getTrackedKey()) || '[]');
+        const unique = new Set();
+        (Array.isArray(raw) ? raw : []).forEach((id) => {
+          const numericId = Number(id);
+          if (Number.isInteger(numericId) && numericId > 0) unique.add(numericId);
+        });
+        return Array.from(unique);
+      }
       catch { return []; }
     }
 
     function removeTracked(id) {
-      const tracked = getTracked().filter(t => t !== Number(id));
+      const target = Number(id);
+      const tracked = getTracked().filter(t => t !== target);
       localStorage.setItem(getTrackedKey(), JSON.stringify(tracked));
     }
 
@@ -234,15 +243,16 @@
     function renderTracked(products) {
       const list = document.getElementById('tracked-list');
       const trackedIds = getTracked();
+      const trackedSet = new Set(trackedIds.map((id) => Number(id)));
 
       // Filter to only tracked ones and apply search
       const q = document.getElementById('tracked-search').value.toLowerCase();
       const filtered = products
-        .filter(p => trackedIds.includes(p.id))
+        .filter(p => trackedSet.has(Number(p.id)))
         .filter(p => !q || p.name.toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q));
 
       // Stats
-      document.getElementById('stat-tracking').textContent = trackedIds.length;
+      document.getElementById('stat-tracking').textContent = trackedSet.size;
       const avgHealth = filtered.length
         ? Math.round(filtered.reduce((s, p) => s + Number(p.health_score || 0), 0) / filtered.length)
         : '—';
@@ -325,6 +335,17 @@
     // ── LOAD ─────────────────────────────────────────────────────────
     let cachedProducts = [];
 
+    async function fetchTrackedProductsById(trackedIds) {
+      const requests = trackedIds.map((id) =>
+        fetch(`/api/products/${encodeURIComponent(id)}`)
+          .then((response) => (response.ok ? response.json() : null))
+          .catch(() => null)
+      );
+
+      const products = await Promise.all(requests);
+      return products.filter(Boolean);
+    }
+
     async function loadAndRender() {
       const trackedIds = getTracked();
 
@@ -341,10 +362,7 @@
       }
 
       try {
-        const res = await fetch('/api/products/?limit=100&skip=0');
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        cachedProducts = data.products || [];
+        cachedProducts = await fetchTrackedProductsById(trackedIds);
         document.getElementById('tracked-loading').style.display = 'none';
         renderTracked(cachedProducts);
       } catch {
@@ -366,16 +384,16 @@
     if (!localStorage.getItem('access_token')) {
       document.getElementById('tracked-loading').style.display = 'none';
       document.getElementById('tracked-list').innerHTML = `
-        <div class="tracked-empty">
-          <i class="fa-solid fa-lock"></i>
-          <p style="font-size:20px; font-weight:600; color:#111; margin-bottom:8px;">You're not logged in</p>
-          <p style="margin-bottom:20px;">Create an account or log in to save and track your favorite products.</p>
-          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-            <a href="/register" class="btn-browse" style="background:#5dd1ab;">
-              <i class="fa-solid fa-user-plus"></i> Create Account
+        <div style='background:white;border:2px dashed #e5e7eb;border-radius:14px;padding:60px 20px;text-align:center;'>
+          <i class='fa-solid fa-lock' style='font-size:48px;color:#d1d5db;display:block;margin-bottom:16px;'></i>
+          <p style='font-size:18px;font-weight:600;color:#111;margin-bottom:8px;'>You are not signed in</p>
+          <p style='color:#666;margin-bottom:20px;'>Please sign in to view and manage your tracked products.</p>
+          <div style='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;'>
+            <a href='/register' style='background:#5dd1ab;color:white;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600;'>
+              <i class='fa-solid fa-user-plus'></i> Create Account
             </a>
-            <a href="/" class="btn-browse">
-              <i class="fa-solid fa-right-to-bracket"></i> Log In
+            <a href='/' style='background:#111;color:white;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600;'>
+              <i class='fa-solid fa-right-to-bracket'></i> Log In
             </a>
           </div>
         </div>`;

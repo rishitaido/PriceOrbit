@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 
-<body>
+<body data-product-id="{{ product_id if product_id is defined else '' }}">
   <!-- Top Header Bar (same as products.html) -->
   <header class="topbar">
     <div class="topbar-inner">
@@ -36,9 +36,6 @@
         <a href="/docs" class="btn-api-docs" target="_blank" title="View API Documentation">
           <i class="fa-solid fa-code"></i> API Docs
         </a>
-        <button class="btn-track-product" type="button">
-          <i class="fa-solid fa-plus"></i> Track Product
-        </button>
       </div>
     </div>
   </header>
@@ -128,6 +125,9 @@
               <div>
                 <h1 id="product-name" class="detail-product-name">Product Name</h1>
                 <p id="product-category" class="detail-product-category">Category</p>
+                <button id="btn-track-product" type="button">
+                  <i class="fa-solid fa-plus"></i> Track Product
+                </button>
               </div>
             </div>
             

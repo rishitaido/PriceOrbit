@@ -5,14 +5,28 @@ let priceChart = null;
 let activeProductId = null;
 
 // ── TRACKING (localStorage) ──────────────────────────────────────────────────
+function normalizeTrackedIds(ids) {
+  if (!Array.isArray(ids)) return [];
+  const unique = new Set();
+  ids.forEach((rawId) => {
+    const parsed = Number(rawId);
+    if (Number.isInteger(parsed) && parsed > 0) unique.add(parsed);
+  });
+  return Array.from(unique);
+}
+
 function getTrackedKey() {
   const email = localStorage.getItem("user_email") || "guest";
   return "tracked_" + email;
 }
 
 function getTracked() {
-  try { return JSON.parse(localStorage.getItem(getTrackedKey()) || "[]"); }
+  try { return normalizeTrackedIds(JSON.parse(localStorage.getItem(getTrackedKey()) || "[]")); }
   catch { return []; }
+}
+
+function saveTracked(ids) {
+  localStorage.setItem(getTrackedKey(), JSON.stringify(normalizeTrackedIds(ids)));
 }
 
 function isTracked(id) {
@@ -21,33 +35,72 @@ function isTracked(id) {
 
 function toggleTrack(id) {
   id = Number(id);
+  if (!Number.isInteger(id) || id <= 0) return false;
+
   let tracked = getTracked();
   if (tracked.includes(id)) {
     tracked = tracked.filter(t => t !== id);
   } else {
     tracked.push(id);
   }
-  localStorage.setItem(getTrackedKey(), JSON.stringify(tracked));
+  saveTracked(tracked);
   updateTrackButton(id);
+  return isTracked(id);
 }
 
+function handleTrackClick() {
+  if (!localStorage.getItem("access_token")) {
+    // Show toast if not logged in
+    const existing = document.getElementById("po-toast");
+    if (existing) existing.remove();
+    const style = document.createElement("style");
+    style.textContent = "@keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }";
+    document.head.appendChild(style);
+    const toast = document.createElement("div");
+    toast.id = "po-toast";
+    toast.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>Please log in or create an account to save products.</span><a href="/" style="color:white;font-weight:700;margin-left:10px;text-decoration:underline;">Log in</a><a href="/register" style="color:white;font-weight:700;margin-left:8px;text-decoration:underline;">Sign up</a>`;
+    toast.style.cssText = "position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#111;color:white;padding:14px 22px;border-radius:10px;font-size:14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;animation:slideUp 0.3s ease;white-space:nowrap;";
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity="0"; toast.style.transition="opacity 0.4s"; setTimeout(() => toast.remove(), 400); }, 4000);
+    return;
+  }
+  const id = Number(activeProductId || getProductId());
+  if (!id) return;
+  toggleTrack(id);
+}
+window.handleTrackClick = handleTrackClick;
+
 function updateTrackButton(id) {
-  const btn = document.querySelector(".btn-track-product");
+  const btn = document.getElementById("btn-track-product");
   if (!btn) return;
-  if (isTracked(id)) {
+  const tracked = isTracked(id);
+  if (tracked) {
     btn.innerHTML = '<i class="fa-solid fa-bookmark"></i> Tracked';
-    btn.style.background = "#111";
-    btn.style.color = "#fff";
   } else {
     btn.innerHTML = '<i class="fa-solid fa-plus"></i> Track Product';
-    btn.style.background = "";
-    btn.style.color = "";
   }
+  btn.classList.toggle("is-tracked", tracked);
+  btn.setAttribute("aria-pressed", tracked ? "true" : "false");
 }
 
 function getProductId() {
-  const match = window.location.pathname.match(/\/products?\/(\d+)/);
-  return match ? match[1] : null;
+  const fromWindow = Number(window.PRODUCT_ID);
+  if (Number.isInteger(fromWindow) && fromWindow > 0) return fromWindow;
+
+  const fromBody = Number(document.body?.dataset?.productId);
+  if (Number.isInteger(fromBody) && fromBody > 0) return fromBody;
+
+  const pathMatch = window.location.pathname.match(/\/products\/(\d+)(?:\/)?$/);
+  if (pathMatch) {
+    const fromPath = Number(pathMatch[1]);
+    if (Number.isInteger(fromPath) && fromPath > 0) return fromPath;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = Number(params.get("id") || params.get("product_id"));
+  if (Number.isInteger(fromQuery) && fromQuery > 0) return fromQuery;
+
+  return null;
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -63,46 +116,44 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function bindActions() {
-  const trackBtn = document.querySelector(".btn-track-product");
-  if (trackBtn) {
-    trackBtn.addEventListener("click", () => {
-      if (activeProductId) toggleTrack(activeProductId);
-    });
+  const trackButton = document.getElementById("btn-track-product");
+  if (trackButton) {
+    trackButton.addEventListener("click", handleTrackClick);
   }
 
   const updateButton = document.getElementById("update-price-btn");
-  if (!updateButton) return;
+  if (updateButton) {
+    updateButton.addEventListener("click", async () => {
+      if (!activeProductId) return;
 
-  updateButton.addEventListener("click", async () => {
-    if (!activeProductId) return;
+      const statusEl = document.getElementById("update-price-status");
+      updateButton.disabled = true;
+      if (statusEl) statusEl.textContent = "Updating...";
 
-    const statusEl = document.getElementById("update-price-status");
-    updateButton.disabled = true;
-    if (statusEl) statusEl.textContent = "Updating...";
+      try {
+        const response = await fetch(`${API_BASE}/${activeProductId}/update-price`, {
+          method: "POST",
+        });
 
-    try {
-      const response = await fetch(`${API_BASE}/${activeProductId}/update-price`, {
-        method: "POST",
-      });
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          const message = errorBody?.detail?.message || errorBody?.detail || "Price update failed";
+          throw new Error(message);
+        }
 
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        const message = errorBody?.detail?.message || errorBody?.detail || "Price update failed";
-        throw new Error(message);
+        const payload = await response.json();
+        if (statusEl) {
+          statusEl.textContent = `Updated to $${Number(payload.new_price).toFixed(2)}`;
+        }
+
+        await loadProductDetail(activeProductId, { showLoading: false });
+      } catch (error) {
+        if (statusEl) statusEl.textContent = String(error.message || "Update failed");
+      } finally {
+        updateButton.disabled = false;
       }
-
-      const payload = await response.json();
-      if (statusEl) {
-        statusEl.textContent = `Updated to $${Number(payload.new_price).toFixed(2)}`;
-      }
-
-      await loadProductDetail(activeProductId, { showLoading: false });
-    } catch (error) {
-      if (statusEl) statusEl.textContent = String(error.message || "Update failed");
-    } finally {
-      updateButton.disabled = false;
-    }
-  });
+    });
+  }
 }
 
 async function loadProductDetail(productId, { showLoading: shouldShowLoading }) {
@@ -143,6 +194,7 @@ async function loadProductDetail(productId, { showLoading: shouldShowLoading }) 
 }
 
 function displayProductInfo(product, stats = null) {
+  activeProductId = Number(product.id);
   updateTrackButton(product.id);
   document.getElementById("product-name").textContent = product.name;
   document.getElementById("product-category").textContent = product.category || "Uncategorized";
@@ -666,15 +718,22 @@ function flyModalToStore(id, lat, lng) {
 
 // Close modal
 function closeStoreMapModal() {
-  document.getElementById("store-map-modal").style.display = "none";
+  const modal = document.getElementById("store-map-modal");
+  if (modal) modal.style.display = "none";
 }
 
-document.getElementById("close-modal-btn").addEventListener("click", closeStoreMapModal);
+const closeModalButton = document.getElementById("close-modal-btn");
+if (closeModalButton) {
+  closeModalButton.addEventListener("click", closeStoreMapModal);
+}
 
 // Close on backdrop click
-document.getElementById("store-map-modal").addEventListener("click", (e) => {
-  if (e.target === document.getElementById("store-map-modal")) closeStoreMapModal();
-});
+const storeMapModal = document.getElementById("store-map-modal");
+if (storeMapModal) {
+  storeMapModal.addEventListener("click", (e) => {
+    if (e.target === storeMapModal) closeStoreMapModal();
+  });
+}
 
 // Close on Escape key
 document.addEventListener("keydown", (e) => {
