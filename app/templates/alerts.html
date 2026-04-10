@@ -677,10 +677,24 @@
 
     // ── BOOT ──────────────────────────────────────────────────────────
     if (!localStorage.getItem('access_token')) {
-      window.location.href = '/';
+      document.getElementById('alerts-loading').style.display = 'none';
+      document.getElementById('alerts-list').innerHTML = `
+        <div style='background:white;border:2px dashed #e5e7eb;border-radius:14px;padding:60px 20px;text-align:center;'>
+          <i class='fa-solid fa-bell-slash' style='font-size:48px;color:#d1d5db;display:block;margin-bottom:16px;'></i>
+          <p style='font-size:18px;font-weight:600;color:#111;margin-bottom:8px;'>You're not signed in</p>
+          <p style='color:#666;margin-bottom:20px;'>Please sign in to set price alerts for your tracked products.</p>
+          <div style='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;'>
+            <a href='/register' style='background:#5dd1ab;color:white;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600;'>
+              <i class='fa-solid fa-user-plus'></i> Create Account
+            </a>
+            <a href='/' style='background:#111;color:white;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600;'>
+              <i class='fa-solid fa-right-to-bracket'></i> Log In
+            </a>
+          </div>
+        </div>`;
+    } else {
+      load();
     }
-
-    load();
   </script>
 </body>
 </html>

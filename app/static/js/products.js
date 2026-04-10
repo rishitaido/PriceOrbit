@@ -1,3 +1,57 @@
+// ── TRACKED PRODUCTS (localStorage) ──────────────────────────────────────────
+
+function getTrackedKey() {
+  const email = localStorage.getItem("user_email") || "guest";
+  return "tracked_" + email;
+}
+
+function getTracked() {
+  try {
+    return JSON.parse(localStorage.getItem(getTrackedKey()) || "[]");
+  } catch { return []; }
+}
+
+function saveTracked(ids) {
+  localStorage.setItem(getTrackedKey(), JSON.stringify(ids));
+}
+
+function isTracked(id) {
+  return getTracked().includes(Number(id));
+}
+
+function toggleTrack(id, btn) {
+  if (!localStorage.getItem("access_token")) {
+    showToast("Please log in or create an account to save products.");
+    return;
+  }
+  id = Number(id);
+  let tracked = getTracked();
+  if (tracked.includes(id)) {
+    tracked = tracked.filter(t => t !== id);
+    btn.innerHTML = '<i class="fa-regular fa-bookmark"></i>';
+    btn.title = "Track this product";
+  } else {
+    tracked.push(id);
+    btn.innerHTML = '<i class="fa-solid fa-bookmark"></i>';
+    btn.title = "Untrack this product";
+  }
+  saveTracked(tracked);
+}
+
+function showToast(message) {
+  const existing = document.getElementById("po-toast");
+  if (existing) existing.remove();
+  const style = document.createElement("style");
+  style.textContent = "@keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }";
+  document.head.appendChild(style);
+  const toast = document.createElement("div");
+  toast.id = "po-toast";
+  toast.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>${message}</span><a href="/" style="color:white;font-weight:700;margin-left:10px;text-decoration:underline;">Log in</a><a href="/register" style="color:white;font-weight:700;margin-left:8px;text-decoration:underline;">Sign up</a>`;
+  toast.style.cssText = "position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#111;color:white;padding:14px 22px;border-radius:10px;font-size:14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;animation:slideUp 0.3s ease;white-space:nowrap;";
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity="0"; toast.style.transition="opacity 0.4s"; setTimeout(() => toast.remove(), 400); }, 4000);
+}
+
 // products.js - product listing, filtering, search, and pagination
 const API_BASE = "/api/products";
 
