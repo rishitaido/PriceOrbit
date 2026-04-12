@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
 
+from app.db.session import get_db
 from app.models.user_model import User
 from app.routers.auth_routes import get_current_user
+from app.services.admin_service import AdminService
 from app.tasks.price_updater import price_update_scheduler
 
 router = APIRouter()
@@ -30,3 +33,14 @@ def get_price_update_status(
 ):
     """Return scheduler and last-run status."""
     return price_update_scheduler.get_status()
+
+
+@router.get("/dashboard-metrics")
+def get_dashboard_metrics(
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Return admin dashboard metrics and recent update activity."""
+    service = AdminService(db)
+    scheduler_snapshot = price_update_scheduler.get_status()
+    return service.get_dashboard_metrics(scheduler_snapshot=scheduler_snapshot)

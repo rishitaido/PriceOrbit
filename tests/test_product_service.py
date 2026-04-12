@@ -16,6 +16,12 @@ pytestmark = pytest.mark.skipif(
 def make_service(db):
     return ProductService(db)
 
+def test_kroger_safe_query_truncates_to_api_limit():
+    raw = "Kroger Atlantic Salmon Fillets Frozen Teriyaki Family Value Pack Extra Large"
+    query = ProductService._kroger_safe_query(raw)
+    assert len(query.split()) <= 8
+    assert query == "Kroger Atlantic Salmon Fillets Frozen Teriyaki Family Value"
+
 
 def test_create_product(db):
     service = make_service(db)

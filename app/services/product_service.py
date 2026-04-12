@@ -89,6 +89,27 @@ class ProductService:
         return str(value or "").strip().lower()
 
     @staticmethod
+    def _kroger_safe_query(value: str, max_words: int = 8) -> str:
+        """
+        Normalize free-form product labels into Kroger-compatible query terms.
+
+        Kroger product search rejects terms over 8 words. We sanitize and
+        truncate to keep automated update jobs resilient when product display
+        names become verbose after metadata enrichment.
+        """
+        raw = str(value or "").strip()
+        if not raw:
+            return ""
+
+        # Remove parenthetical suffixes and collapse punctuation into spaces.
+        base = re.sub(r"\s*\([^)]*\)\s*$", "", raw)
+        base = re.sub(r"[^0-9A-Za-z\s]+", " ", base)
+        words = [word for word in re.split(r"\s+", base.strip()) if word]
+        if not words:
+            return ""
+        return " ".join(words[: max(1, max_words)])
+
+    @staticmethod
     def _resolve_file_path(raw_path: str) -> Path:
         candidate = Path(raw_path).expanduser()
         if not candidate.is_absolute():
@@ -214,7 +235,17 @@ class ProductService:
                 seen.add(normalized_alias)
                 terms.append(alias)
 
-        return terms
+        safe_terms: List[str] = []
+        safe_seen: set[str] = set()
+        for term in terms:
+            safe = self._kroger_safe_query(term)
+            safe_key = self._normalize_lookup_key(safe)
+            if not safe_key or safe_key in safe_seen:
+                continue
+            safe_seen.add(safe_key)
+            safe_terms.append(safe)
+
+        return safe_terms
 
     @staticmethod
     def _derive_size_label(raw_size: Optional[str]) -> Optional[str]:
@@ -839,21 +870,33 @@ class ProductService:
         if not items:
             raise ExternalAPIError("Kroger", "Product payload did not include item pricing data.")
 
+        def _coerce(value: Any) -> Optional[Decimal]:
+            if value is None:
+                return None
+            try:
+                parsed = Decimal(str(value))
+            except Exception:
+                return None
+            return parsed if parsed > 0 else None
+
+        def _pick_preferred(item_block: Dict[str, Any], national_block: Dict[str, Any]) -> Optional[Decimal]:
+            in_store = [_coerce(item_block.get("promo")), _coerce(item_block.get("regular"))]
+            in_store = [value for value in in_store if value is not None]
+            if in_store:
+                return min(in_store)
+
+            national = [_coerce(national_block.get("promo")), _coerce(national_block.get("regular"))]
+            national = [value for value in national if value is not None]
+            if national:
+                return min(national)
+            return None
+
         for item in items:
             price_block = item.get("price") or {}
             national_block = item.get("nationalPrice") or {}
-            raw_price = (
-                price_block.get("regular")
-                or price_block.get("promo")
-                or national_block.get("regular")
-                or national_block.get("promo")
-            )
-            if raw_price is None:
-                continue
-            try:
-                return Decimal(str(raw_price))
-            except Exception as exc:  # pragma: no cover - defensive guard
-                raise ExternalAPIError("Kroger", f"Invalid price value received: {raw_price}") from exc
+            selected = _pick_preferred(price_block, national_block)
+            if selected is not None:
+                return selected
 
         raise ExternalAPIError("Kroger", "No regular/promo price found for product.")
 
@@ -861,19 +904,29 @@ class ProductService:
     def _extract_price_from_kroger_price_result(payload: Dict[str, Any]) -> Decimal:
         price_block = payload.get("price") or {}
         national_block = payload.get("nationalPrice") or {}
-        raw_price = (
-            price_block.get("regular")
-            or price_block.get("promo")
-            or national_block.get("regular")
-            or national_block.get("promo")
-        )
-        if raw_price is None:
-            raise ExternalAPIError("Kroger", "No regular/promo price found in store price response.")
 
-        try:
-            return Decimal(str(raw_price))
-        except Exception as exc:  # pragma: no cover - defensive guard
-            raise ExternalAPIError("Kroger", f"Invalid price value received: {raw_price}") from exc
+        def _coerce(value: Any) -> Optional[Decimal]:
+            if value is None:
+                return None
+            try:
+                parsed = Decimal(str(value))
+            except Exception:
+                return None
+            return parsed if parsed > 0 else None
+
+        in_store = [_coerce(price_block.get("promo")), _coerce(price_block.get("regular"))]
+        in_store = [value for value in in_store if value is not None]
+        if in_store:
+            return min(in_store)
+
+        national = [_coerce(national_block.get("promo")), _coerce(national_block.get("regular"))]
+        national = [value for value in national if value is not None]
+        if national:
+            return min(national)
+
+        if not in_store and not national:
+            raise ExternalAPIError("Kroger", "No regular/promo price found in store price response.")
+        raise ExternalAPIError("Kroger", "No valid regular/promo price found in store price response.")
 
     @staticmethod
     def _confidence(search_term: str, description: str) -> float:
@@ -951,6 +1004,11 @@ class ProductService:
                 if candidate_id in seen:
                     continue
                 seen.add(candidate_id)
+
+                # If a manual override is pinned, never borrow price from a
+                # different Kroger item. This avoids silent price drift.
+                if locked_override_id and candidate_id != locked_override_id:
+                    continue
 
                 candidate_confidence = self._confidence(
                     product_label,
@@ -1102,6 +1160,7 @@ class ProductService:
         async with KrogerService(
             client_id=settings.KROGER_CLIENT_ID,
             client_secret=settings.KROGER_CLIENT_SECRET,
+            location_id=settings.KROGER_LOCATION_ID,
         ) as kroger:
             return await self._update_single_product_price(product, kroger)
 
@@ -1125,6 +1184,7 @@ class ProductService:
         async with KrogerService(
             client_id=settings.KROGER_CLIENT_ID,
             client_secret=settings.KROGER_CLIENT_SECRET,
+            location_id=settings.KROGER_LOCATION_ID,
         ) as kroger:
             for product in products:
                 try:

@@ -338,16 +338,16 @@
           </div>
           <div class="stat-info">
             <p class="stat-label">Total Products</p>
-            <p class="stat-value" id="stat-total">—</p>
+            <p class="stat-value" id="stat-total-products">—</p>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon" style="background: #5dd1ab;">
-            <i class="fa-solid fa-heart-pulse"></i>
+            <i class="fa-solid fa-store"></i>
           </div>
           <div class="stat-info">
-            <p class="stat-label">Avg Health Score</p>
-            <p class="stat-value" id="stat-health">—</p>
+            <p class="stat-label">Total Stores</p>
+            <p class="stat-value" id="stat-total-stores">—</p>
           </div>
         </div>
         <div class="stat-card">
@@ -355,17 +355,17 @@
             <i class="fa-solid fa-triangle-exclamation"></i>
           </div>
           <div class="stat-info">
-            <p class="stat-label">High Risk Items</p>
-            <p class="stat-value" id="stat-risk">—</p>
+            <p class="stat-label">Failed API Calls</p>
+            <p class="stat-value" id="stat-failed-calls">—</p>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon" style="background: #f59e0b;">
-            <i class="fa-solid fa-tags"></i>
+            <i class="fa-solid fa-heart-pulse"></i>
           </div>
           <div class="stat-info">
-            <p class="stat-label">Unmapped Products</p>
-            <p class="stat-value" id="stat-unmapped">—</p>
+            <p class="stat-label">System Health</p>
+            <p class="stat-value" id="stat-system-health">—</p>
           </div>
         </div>
       </div>
@@ -377,6 +377,30 @@
           <i class="fa-solid fa-rotate"></i> Refresh All Prices
         </button>
         <span id="bulk-status" style="font-size:13px; color:#666;"></span>
+      </div>
+
+      <!-- Recent Price Updates -->
+      <div class="admin-table-wrap" style="margin-top: 16px; margin-bottom: 18px;">
+        <div class="table-scroll">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th colspan="3">
+                  Recent Price Updates (Last 10)
+                  <span id="admin-runtime-meta" style="font-size:12px; color:#666; margin-left:8px;"></span>
+                </th>
+              </tr>
+              <tr>
+                <th>Product</th>
+                <th>Current Price</th>
+                <th>Last Price Check</th>
+              </tr>
+            </thead>
+            <tbody id="recent-updates-tbody">
+              <tr><td colspan="3" style="color:#666;">Loading recent updates...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Search + Filter -->
@@ -476,7 +500,6 @@
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         allProducts = data.products || [];
-        updateStats(allProducts, data.total || allProducts.length);
         applyFilters();
         setLoading(false);
         document.getElementById('admin-table-wrap').style.display = 'block';
@@ -486,15 +509,66 @@
       }
     }
 
-    // ── STATS ──────────────────────────────────────────────────────
-    function updateStats(products, total) {
-      document.getElementById('stat-total').textContent = total;
-      const avg = products.length
-        ? Math.round(products.reduce((s, p) => s + Number(p.health_score || 0), 0) / products.length)
-        : 0;
-      document.getElementById('stat-health').textContent = avg;
-      document.getElementById('stat-risk').textContent = products.filter(p => Number(p.health_score) < 40).length;
-      document.getElementById('stat-unmapped').textContent = products.filter(p => !p.kroger_product_id).length;
+    // ── DASHBOARD METRICS ──────────────────────────────────────────
+    function formatDateTime(value) {
+      if (!value) return '—';
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return '—';
+      return parsed.toLocaleString();
+    }
+
+    function renderRecentUpdates(rows) {
+      const tbody = document.getElementById('recent-updates-tbody');
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="color:#666;">No recent price updates yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map((row) => {
+        const price = row.current_price != null ? `$${Number(row.current_price).toFixed(2)}` : 'N/A';
+        return `
+          <tr>
+            <td>
+              <a href="/products/${row.product_id}" style="font-weight:600;color:#111;text-decoration:none;">
+                ${row.product_name}
+              </a>
+            </td>
+            <td style="font-weight:600;">${price}</td>
+            <td style="color:#666;">${formatDateTime(row.last_price_check)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadDashboardMetrics() {
+      try {
+        const res = await fetch(`${ADMIN_API}/dashboard-metrics`, {
+          headers: {
+            ...getAuthHeaders(),
+          }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const metrics = await res.json();
+
+        document.getElementById('stat-total-products').textContent = metrics.total_products ?? '—';
+        document.getElementById('stat-total-stores').textContent = metrics.total_stores ?? '—';
+        document.getElementById('stat-failed-calls').textContent = metrics.failed_api_calls ?? '—';
+        document.getElementById('stat-system-health').textContent =
+          String(metrics.system_health || 'unknown').toUpperCase();
+
+        const schedulerLabel = metrics.scheduler_running
+          ? 'Scheduler: running'
+          : (metrics.scheduler_enabled ? 'Scheduler: enabled' : 'Scheduler: disabled');
+        const nextRunLabel = metrics.next_run_utc
+          ? `Next run: ${formatDateTime(metrics.next_run_utc)}`
+          : 'Next run: —';
+        document.getElementById('admin-runtime-meta').textContent = `${schedulerLabel} · ${nextRunLabel}`;
+
+        renderRecentUpdates(metrics.recent_price_updates || []);
+      } catch (err) {
+        document.getElementById('admin-runtime-meta').textContent = 'Dashboard metrics unavailable';
+        renderRecentUpdates([]);
+      }
     }
 
     // ── FILTERS ────────────────────────────────────────────────────
@@ -652,6 +726,7 @@
         const idx = allProducts.findIndex(p => p.id === id);
         if (idx !== -1) allProducts[idx].current_price = data.new_price;
         renderTable();
+        loadDashboardMetrics();
       } catch (err) {
         status.textContent = '✗ Error';
         status.className = 'save-status save-err';
@@ -683,6 +758,7 @@
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         status.textContent = '✓ Manual price-update job started';
+        loadDashboardMetrics();
       } catch (err) {
         status.textContent = '✗ Manual price-update trigger failed';
       } finally {
@@ -714,6 +790,7 @@
           </a>
         </div>`;
     } else {
+      loadDashboardMetrics();
       loadProducts();
     }
   </script>

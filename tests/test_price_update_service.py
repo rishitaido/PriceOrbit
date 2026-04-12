@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import pytest
 
+from app.core.config import settings
 from app.core.exceptions import ExternalAPIError, ValidationError
 from app.schemas.product_schemas import ProductCreate
 from app.services.kroger_service import KrogerAPIError
@@ -33,7 +34,7 @@ async def test_update_price_from_kroger_success(db, monkeypatch):
 
     class FakeKrogerService:
         def __init__(self, *args, **kwargs):
-            pass
+            assert kwargs.get("location_id") == settings.KROGER_LOCATION_ID
 
         async def __aenter__(self):
             return self
@@ -182,6 +183,53 @@ async def test_update_price_raises_external_error_on_api_failure(db, monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_locked_override_does_not_use_other_candidate_price(db, monkeypatch):
+    service = make_service(db)
+    product = service.create_product(
+        ProductCreate(
+            name="Locked Override Garlic Test",
+            category="Fresh Produce",
+            current_price=Decimal("0.99"),
+            kroger_product_id="LOCKED_ID_123",
+        )
+    )
+    service._override_by_product_id[product.id] = "LOCKED_ID_123"
+
+    class FakeKrogerService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get_product_details(self, kroger_product_id: str):
+            assert kroger_product_id == "LOCKED_ID_123"
+            return {"items": [{"price": {"regular": None, "promo": None}}]}
+
+        async def search_products(self, product_name: str, **kwargs):
+            # A different product candidate with a valid price; should be ignored
+            # because this product has a pinned override ID.
+            return [
+                {
+                    "productId": "DIFFERENT_ID_999",
+                    "description": "Garlic Powder",
+                    "items": [{"price": {"regular": 4.49}}],
+                }
+            ]
+
+        async def find_kroger_product(self, product_name: str, **kwargs):
+            return None
+
+    monkeypatch.setattr("app.services.product_service.KrogerService", FakeKrogerService)
+
+    with pytest.raises(ExternalAPIError):
+        await service.update_price_from_kroger(product.id)
+
+
+@pytest.mark.asyncio
 async def test_update_all_prices_limit_validation(db):
     service = make_service(db)
     with pytest.raises(ValidationError):
@@ -293,3 +341,25 @@ async def test_update_price_checks_alert_triggers(db, monkeypatch):
     assert FakePriceAlertService.captured is not None
     assert FakePriceAlertService.captured["product_id"] == product.id
     assert FakePriceAlertService.captured["current_price"] == Decimal("1.75")
+
+
+def test_extract_price_prefers_lower_promo():
+    payload = {
+        "items": [
+            {
+                "price": {"regular": 0.99, "promo": 0.79},
+                "nationalPrice": {"regular": 1.09, "promo": None},
+            }
+        ]
+    }
+    selected = ProductService._extract_price_from_kroger_payload(payload)
+    assert selected == Decimal("0.79")
+
+
+def test_extract_store_price_result_prefers_lower_promo():
+    payload = {
+        "price": {"regular": 0.99, "promo": 0.79},
+        "nationalPrice": {"regular": 1.09, "promo": None},
+    }
+    selected = ProductService._extract_price_from_kroger_price_result(payload)
+    assert selected == Decimal("0.79")

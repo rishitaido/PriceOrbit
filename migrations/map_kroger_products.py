@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import time
+import re
 from pathlib import Path
 from difflib import SequenceMatcher
 from dotenv import load_dotenv
@@ -17,6 +18,22 @@ from app.services.kroger_service import KrogerService
 def get_confidence(a, b):
     """Calculates how similar two strings are (0 - 100.0)"""
     return round(SequenceMatcher(None, a.lower(), b.lower()).ratio() * 100, 1)
+
+
+def kroger_safe_query(value: str, max_words: int = 8) -> str:
+    """
+    Kroger product search accepts a max of 8 words per term.
+    """
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+
+    base = re.sub(r"\s*\([^)]*\)\s*$", "", raw)
+    base = re.sub(r"[^0-9A-Za-z\s]+", " ", base)
+    words = [word for word in re.split(r"\s+", base.strip()) if word]
+    if not words:
+        return ""
+    return " ".join(words[: max(1, max_words)])
 
 async def map_products():
     # Initialize the Service with keys from your .env
@@ -38,10 +55,16 @@ async def map_products():
 
         for product in products:
             print(f"Searching for: {product.name}...")
+            query = kroger_safe_query(product.name)
+            if not query:
+                print(f"No usable query for: {product.name}")
+                unmapped.append({"name": product.name, "reason": "Invalid search query"})
+                manual_needed += 1
+                continue
             
             try:
                 # Call asynch search
-                results = await kroger.search_products(product.name, limit=3)
+                results = await kroger.search_products(query, limit=3)
             except Exception as e:
                 print(f"API Connection Error: {e}")
                 continue

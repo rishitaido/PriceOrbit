@@ -60,6 +60,7 @@ PriceOrbit is a FastAPI application for tracking grocery prices, mapping Kroger 
 - Admin:
   - `POST /api/admin/trigger-price-update`
   - `GET /api/admin/price-update-status`
+  - `GET /api/admin/dashboard-metrics`
 
 ## Scheduler
 The daily scheduler runs at `06:00 UTC` by default and can be tuned via env vars:
