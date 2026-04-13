@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ValidationError
 from app.db.session import get_db
+from app.models.user_model import User
+from app.routers.auth_routes import get_current_user
 from app.schemas.product_schemas import (
     BatchPriceUpdateResponse,
     PriceHistoryResponse,
@@ -74,6 +76,7 @@ def search_products(
 @router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 def create_product(
     product_data: ProductCreate,
+    _: User = Depends(get_current_user),
     service: ProductService = Depends(get_product_service),
 ):
     return service.create_product(product_data)
@@ -82,6 +85,7 @@ def create_product(
 @router.post("/update-all-prices", response_model=BatchPriceUpdateResponse)
 async def update_all_prices(
     limit: int = Query(50, ge=1, le=50),
+    _: User = Depends(get_current_user),
     service: ProductService = Depends(get_product_service),
 ):
     summary = await service.update_all_prices(limit=limit)
@@ -100,6 +104,7 @@ def get_product(
 def update_product(
     product_id: int,
     product_data: ProductUpdate,
+    _: User = Depends(get_current_user),
     service: ProductService = Depends(get_product_service),
 ):
     return service.update_product(product_id, product_data)
@@ -109,6 +114,7 @@ def update_product(
 def delete_product(
     product_id: int,
     confirm: bool = Query(False, description="Must be true to confirm hard delete"),
+    _: User = Depends(get_current_user),
     service: ProductService = Depends(get_product_service),
 ):
     if not confirm:
@@ -152,6 +158,7 @@ async def get_product_prices_by_store(
 def add_price_point(
     product_id: int,
     payload: PricePointCreate,
+    _: User = Depends(get_current_user),
     service: ProductService = Depends(get_product_service),
 ):
     return service.add_price_point(product_id=product_id, price=payload.price, record_date=payload.date)
@@ -160,6 +167,7 @@ def add_price_point(
 @router.post("/{product_id}/recalculate-health-score", response_model=ProductResponse)
 def recalculate_health_score(
     product_id: int,
+    _: User = Depends(get_current_user),
     service: ProductService = Depends(get_product_service),
 ):
     return service.recalculate_health_score(product_id)
@@ -168,6 +176,7 @@ def recalculate_health_score(
 @router.post("/{product_id}/update-price", response_model=PriceUpdateResponse)
 async def update_product_price(
     product_id: int,
+    _: User = Depends(get_current_user),
     service: ProductService = Depends(get_product_service),
 ):
     payload = await service.update_price_from_kroger(product_id)

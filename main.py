@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- startup ---
+    if not settings.DEBUG and settings.SECRET_KEY == "change-me-in-production":
+        raise RuntimeError("SECRET_KEY must be set to a secure value in production.")
     logger.info("%s v%s", settings.APP_NAME, settings.VERSION)
     logger.info("Database: %s", settings.MYSQL_DATABASE)
     logger.info("Debug Mode: %s", settings.DEBUG)
@@ -44,12 +46,11 @@ async def lifespan(app: FastAPI):
 # Create FastAPI application instance
 app = FastAPI(
     title=settings.APP_NAME,
-    version= settings.VERSION,
-    description= "Grocery price prediction system monitoring tariffs, supply chain, and retail prices",
-    docs_url= "/docs", 
-    redoc_url = "/redoc",
-    lifespan=lifespan
-    
+    version=settings.VERSION,
+    description="Grocery price prediction system monitoring tariffs, supply chain, and retail prices",
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    lifespan=lifespan,
 )
 
 
@@ -122,10 +123,9 @@ def health_check():
     Sends API status and config info 
     '''
     return {
-        "status" : "healthy",
-        "service" : settings.APP_NAME, 
-        "version" : settings.VERSION, 
-        "debug" : settings.DEBUG
+        "status": "healthy",
+        "service": settings.APP_NAME,
+        "version": settings.VERSION,
     }
 
 @app.get("/products/{product_id}", response_class=HTMLResponse)

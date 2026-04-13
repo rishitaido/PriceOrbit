@@ -245,6 +245,17 @@ class ProductService:
             safe_seen.add(safe_key)
             safe_terms.append(safe)
 
+        # Add a short (≤3-word) fallback term for verbose product names so the
+        # Kroger search still finds results when the full name doesn't match.
+        if safe_terms:
+            words = safe_terms[0].split()
+            if len(words) > 3:
+                short = " ".join(words[:3])
+                short_key = self._normalize_lookup_key(short)
+                if short_key and short_key not in safe_seen:
+                    safe_seen.add(short_key)
+                    safe_terms.append(short)
+
         return safe_terms
 
     @staticmethod
@@ -933,6 +944,21 @@ class ProductService:
         return SequenceMatcher(None, search_term.lower(), description.lower()).ratio()
 
     @staticmethod
+    def _word_containment_score(product_label: str, description: str) -> float:
+        """
+        Fraction of product label words that appear in the Kroger description.
+        Handles the common case where a short label like 'Shrimp' has a low
+        SequenceMatcher ratio against a long description like
+        'Kroger® 26-30 Small Shrimp Cooked Tail-Off (12 oz)' but is clearly
+        the right product.
+        """
+        label_words = set(re.sub(r"[^a-z0-9 ]", "", product_label.lower()).split())
+        desc_words = set(re.sub(r"[^a-z0-9 ]", "", description.lower()).split())
+        if not label_words:
+            return 0.0
+        return len(label_words & desc_words) / len(label_words)
+
+    @staticmethod
     def _extract_image_from_search_candidate(candidate: Dict[str, Any]) -> Optional[str]:
         images = candidate.get("images") or []
         if not images:
@@ -1010,9 +1036,10 @@ class ProductService:
                 if locked_override_id and candidate_id != locked_override_id:
                     continue
 
-                candidate_confidence = self._confidence(
-                    product_label,
-                    candidate.get("description") or "",
+                candidate_desc = candidate.get("description") or ""
+                candidate_confidence = max(
+                    self._confidence(product_label, candidate_desc),
+                    self._word_containment_score(product_label, candidate_desc),
                 )
                 if candidate_confidence < settings.KROGER_FALLBACK_MIN_SIMILARITY:
                     continue

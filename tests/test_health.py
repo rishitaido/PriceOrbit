@@ -19,4 +19,4 @@ def test_health_check_response_structure():
     assert "status" in data
     assert "service" in data
     assert "version" in data
-    assert "debug" in data
+    assert "debug" not in data

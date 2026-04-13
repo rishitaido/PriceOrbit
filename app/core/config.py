@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     #App Settings
     APP_NAME: str = "PriceOrbit API"
     VERSION: str = '1.0.0'
-    DEBUG: bool = True
-    PORT: int = 8080 
+    DEBUG: bool = False
+    PORT: int = 8080
     SECRET_KEY: str = "change-me-in-production"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     # Application Constants
     PRODUCTS_PER_PAGE: int = 20
     CACHE_TIMEOUT: int = 300  # 5 minutes
+
+    # Admin access
+    ADMIN_PIN: str = "3030"
 
     # Scheduler configuration
     PRICE_UPDATE_JOB_ENABLED: bool = True

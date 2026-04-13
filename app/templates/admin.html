@@ -10,6 +10,91 @@
   <link rel="stylesheet" href="/static/css/mobile.css">
 
   <style>
+    /* ── PIN GATE OVERLAY ── */
+    #pin-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    #pin-overlay.hidden { display: none; }
+
+    .pin-card {
+      background: white;
+      border-radius: 18px;
+      padding: 40px 36px;
+      width: 360px;
+      max-width: 90vw;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+
+    .pin-card .pin-icon {
+      font-size: 40px;
+      color: #111;
+      margin-bottom: 14px;
+    }
+
+    .pin-card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #111;
+    }
+
+    .pin-card p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    .pin-input-wrap {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    #pin-input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 20px;
+      letter-spacing: 8px;
+      text-align: center;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color .2s;
+    }
+
+    #pin-input:focus { border-color: #5dd1ab; }
+    #pin-input.error { border-color: #ef4444; }
+
+    #pin-error {
+      font-size: 13px;
+      color: #ef4444;
+      min-height: 18px;
+      margin-bottom: 12px;
+    }
+
+    #btn-pin-submit {
+      width: 100%;
+      background: #111;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+
+    #btn-pin-submit:hover { opacity: .85; }
+
     /* ── ADMIN-SPECIFIC STYLES ── */
     .admin-badge {
       display: inline-flex;
@@ -259,6 +344,22 @@
 </head>
 
 <body>
+
+  <!-- PIN Gate Overlay -->
+  <div id="pin-overlay">
+    <div class="pin-card">
+      <div class="pin-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      <h2>Admin Access</h2>
+      <p>Enter the admin PIN to continue</p>
+      <div class="pin-input-wrap">
+        <input type="password" id="pin-input" maxlength="10" placeholder="••••"
+               inputmode="numeric" autocomplete="off" />
+      </div>
+      <div id="pin-error"></div>
+      <button id="btn-pin-submit" onclick="submitPin()">Enter</button>
+    </div>
+  </div>
+
   <!-- Topbar -->
   <header class="topbar">
     <div class="topbar-inner">
@@ -492,6 +593,11 @@
       return token ? { Authorization: `Bearer ${token}` } : {};
     }
 
+    function getAdminHeaders() {
+      const pin = sessionStorage.getItem('admin_pin') || '';
+      return { ...getAuthHeaders(), 'X-Admin-Pin': pin };
+    }
+
     // ── LOAD PRODUCTS ──────────────────────────────────────────────
     async function loadProducts() {
       setLoading(true);
@@ -543,9 +649,7 @@
     async function loadDashboardMetrics() {
       try {
         const res = await fetch(`${ADMIN_API}/dashboard-metrics`, {
-          headers: {
-            ...getAuthHeaders(),
-          }
+          headers: getAdminHeaders(),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const metrics = await res.json();
@@ -751,9 +855,7 @@
           `${ADMIN_API}/trigger-price-update?limit=50&delay_seconds=2`,
           {
             method: 'POST',
-            headers: {
-              ...getAuthHeaders(),
-            }
+            headers: getAdminHeaders(),
           }
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -774,24 +876,61 @@
       document.getElementById('admin-error-text').textContent = errorMsg;
     }
 
-    // ── BOOT ───────────────────────────────────────────────────────
-    const ADMIN_EMAIL = 'team22@priceorbit.com';
-    const loggedInEmail = localStorage.getItem('user_email') || '';
+    // ── PIN GATE ───────────────────────────────────────────────────
+    function submitPin() {
+      const input = document.getElementById('pin-input');
+      const errorEl = document.getElementById('pin-error');
+      const pin = input.value.trim();
 
-    if (!localStorage.getItem('access_token') || loggedInEmail !== ADMIN_EMAIL) {
-      document.querySelector('.main-content').innerHTML = `
-        <div class='content-header'><h1>Admin Dashboard</h1></div>
-        <div style='background:white;border:2px dashed #e5e7eb;border-radius:14px;padding:60px 20px;text-align:center;margin-top:20px;'>
-          <i class='fa-solid fa-shield-halved' style='font-size:48px;color:#d1d5db;display:block;margin-bottom:16px;'></i>
-          <p style='font-size:18px;font-weight:600;color:#111;margin-bottom:8px;'>Access Restricted</p>
-          <p style='color:#666;margin-bottom:20px;'>This page is only accessible to administrators.</p>
-          <a href='/products.html' style='background:#111;color:white;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:600;'>
-            <i class='fa-solid fa-arrow-left'></i> Back to Dashboard
-          </a>
-        </div>`;
-    } else {
+      if (!pin) {
+        errorEl.textContent = 'Please enter the PIN.';
+        input.classList.add('error');
+        return;
+      }
+
+      // Validate PIN against backend (round-trip also verifies JWT)
+      fetch(`${ADMIN_API}/price-update-status`, {
+        headers: { ...getAuthHeaders(), 'X-Admin-Pin': pin },
+      }).then(res => {
+        if (res.status === 403) {
+          errorEl.textContent = 'Incorrect PIN. Try again.';
+          input.classList.add('error');
+          input.value = '';
+          input.focus();
+        } else if (res.status === 401) {
+          errorEl.textContent = 'You must be logged in first.';
+          input.classList.add('error');
+          setTimeout(() => { window.location.href = '/'; }, 1500);
+        } else if (res.ok) {
+          sessionStorage.setItem('admin_pin', pin);
+          document.getElementById('pin-overlay').classList.add('hidden');
+          loadDashboardMetrics();
+          loadProducts();
+        } else {
+          errorEl.textContent = `Unexpected error (${res.status}). Try again.`;
+        }
+      }).catch(() => {
+        errorEl.textContent = 'Network error. Is the server running?';
+      });
+    }
+
+    // Allow pressing Enter in the PIN input
+    document.getElementById('pin-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitPin();
+      document.getElementById('pin-error').textContent = '';
+      e.target.classList.remove('error');
+    });
+
+    // ── BOOT ───────────────────────────────────────────────────────
+    // If PIN already verified this session, skip the overlay
+    const savedPin = sessionStorage.getItem('admin_pin');
+    if (savedPin) {
+      document.getElementById('pin-overlay').classList.add('hidden');
       loadDashboardMetrics();
       loadProducts();
+    } else {
+      // Focus the PIN input when overlay shows
+      setTimeout(() => document.getElementById('pin-input').focus(), 100);
     }
   </script>
 </body>
