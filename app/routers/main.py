@@ -79,7 +79,7 @@ async def about(request: Request):
     """
     About page explaining PriceOrbit
     """
-    return {
-        "message": "About page - to be implemented",
-        "description": "PriceOrbit predicts grocery price increases using tariff data and supply chain analysis"
-    }
+    return templates.TemplateResponse(
+        "about.html",
+        {"request": request, "title": "PriceOrbit - About"}
+    )

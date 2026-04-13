@@ -40,7 +40,7 @@ def test_trigger_price_update_endpoint(monkeypatch):
             _fake_trigger_manual_update,
         )
 
-        response = client.post("/api/admin/trigger-price-update?limit=7&delay_seconds=1.5")
+        response = client.post("/api/admin/trigger-price-update?limit=7&delay_seconds=1.5", headers={"X-Admin-Pin": "3030"})
         assert response.status_code == 202
         payload = response.json()
         assert payload["status"] == "started"
@@ -59,7 +59,7 @@ def test_price_update_status_endpoint(monkeypatch):
             lambda: {"scheduler_enabled": True, "running": False},
         )
 
-        response = client.get("/api/admin/price-update-status")
+        response = client.get("/api/admin/price-update-status", headers={"X-Admin-Pin": "3030"})
         assert response.status_code == 200
         assert response.json()["scheduler_enabled"] is True
     finally:
@@ -101,7 +101,7 @@ def test_dashboard_metrics_endpoint(monkeypatch):
             lambda: {"scheduler_enabled": True, "running": False},
         )
 
-        response = client.get("/api/admin/dashboard-metrics")
+        response = client.get("/api/admin/dashboard-metrics", headers={"X-Admin-Pin": "3030"})
         assert response.status_code == 200
         payload = response.json()
         assert payload["total_products"] == 50
