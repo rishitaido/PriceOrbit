@@ -4,7 +4,7 @@ Price alert SQLAlchemy model.
 
 from __future__ import annotations
 
-from sqlalchemy import Boolean, Column, DECIMAL, DateTime, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import Boolean, Column, DECIMAL, DateTime, ForeignKey, Integer, UniqueConstraint, text
 from sqlalchemy.sql import func
 
 from app.db.base import Base
@@ -24,7 +24,7 @@ class PriceAlert(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
     target_price = Column(DECIMAL(10, 2), nullable=False)
-    is_active = Column(Boolean, nullable=False, default=True, server_default="1")
+    is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
@@ -39,4 +39,3 @@ class PriceAlert(Base):
             f"<PriceAlert(id={self.id}, user_id={self.user_id}, product_id={self.product_id}, "
             f"target_price={self.target_price}, is_active={self.is_active})>"
         )
-

@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("product_id", sa.Integer(), nullable=False),
         sa.Column("target_price", sa.DECIMAL(precision=10, scale=2), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -56,4 +56,3 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_price_alerts_user_id"), table_name="price_alerts")
     op.drop_index(op.f("ix_price_alerts_id"), table_name="price_alerts")
     op.drop_table("price_alerts")
-
