@@ -41,7 +41,7 @@ jobs:
 
       - name: Run migrations on production database
         run: |
-          alembic upgrade head
+          alembic upgrade heads
 
       - name: Sync tariffs from USITC and resolve product tariffs (non-blocking)
         run: |

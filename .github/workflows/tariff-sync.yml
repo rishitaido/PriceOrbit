@@ -41,7 +41,7 @@ jobs:
 
       - name: Ensure latest schema
         run: |
-          alembic upgrade head
+          alembic upgrade heads
 
       - name: Sync tariffs from USITC and resolve product records
         run: |
