@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       MYSQL_PASSWORD: ${{ secrets.PROD_MYSQL_PASSWORD }}
       KROGER_CLIENT_ID: ${{ secrets.KROGER_CLIENT_ID }}
       KROGER_CLIENT_SECRET: ${{ secrets.KROGER_CLIENT_SECRET }}
