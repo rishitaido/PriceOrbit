@@ -231,11 +231,17 @@ function displayProductInfo(product, stats = null) {
 
   const tariffRate = Number(product.tariff_rate || 0);
   document.getElementById("tariff-rate").textContent = `${tariffRate.toFixed(2)}%`;
-  document.getElementById("rate-type").textContent = formatDisplayLabel(product.rate_type || "duty_free");
+  const rateTypeEl = document.getElementById("rate-type");
+  if (rateTypeEl) {
+    rateTypeEl.textContent = formatDisplayLabel(product.rate_type || "duty_free");
+  }
   document.getElementById("origin-country").textContent = product.origin_country || "Not specified";
   document.getElementById("hts-code").textContent = product.hts_code || "Not specified";
   updateReviewStatusBadge(product.review_status || "incomplete");
-  document.getElementById("confidence-score").textContent = `${Number(product.confidence_score || 0).toFixed(2)}%`;
+  const confidenceEl = document.getElementById("confidence-score");
+  if (confidenceEl) {
+    confidenceEl.textContent = `${Number(product.confidence_score || 0).toFixed(2)}%`;
+  }
   document.getElementById("verified-at").textContent = product.verified_at
     ? formatDateTime(product.verified_at)
     : "Not verified";
