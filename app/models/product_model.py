@@ -6,7 +6,7 @@ import logging
 from decimal import Decimal
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DECIMAL, DateTime, JSON, Text
+from sqlalchemy import Boolean, Column, Integer, String, DECIMAL, DateTime, JSON, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -52,6 +52,15 @@ class Product(Base):
     
     hts_code = Column(String(20), nullable=True)  # Harmonized Tariff Schedule code
     origin_country = Column(String(100), nullable=True)  # Primary import country
+    rate_type = Column(String(20), default="duty_free", nullable=False)
+    specific_duty_value = Column(String(100), nullable=True)
+    source_url = Column(String(500), nullable=True)
+    verification_source = Column(String(100), nullable=True)
+    verification_notes = Column(Text, nullable=True)
+    verified_at = Column(DateTime(timezone=True), nullable=True)
+    confidence_score = Column(DECIMAL(5, 2), default=0.0, nullable=False)
+    review_status = Column(String(20), default="incomplete", nullable=False)
+    manual_tariff_override = Column(Boolean, default=False, nullable=False)
     
     # Health Score (0-100)
     health_score = Column(DECIMAL(5, 2), default=50.0, nullable=False)
@@ -99,6 +108,15 @@ class Product(Base):
             "import_dependency": self.import_dependency,
             "hts_code": self.hts_code,
             "origin_country": self.origin_country,
+            "rate_type": self.rate_type,
+            "specific_duty_value": self.specific_duty_value,
+            "source_url": self.source_url,
+            "verification_source": self.verification_source,
+            "verification_notes": self.verification_notes,
+            "verified_at": self.verified_at.isoformat() if self.verified_at else None,
+            "confidence_score": float(self.confidence_score),
+            "review_status": self.review_status,
+            "manual_tariff_override": bool(self.manual_tariff_override),
             "health_score": float(self.health_score),
             "kroger_product_id": self.kroger_product_id,
             "image_url": self.image_url,

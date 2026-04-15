@@ -68,6 +68,12 @@ class Settings(BaseSettings):
     PRICE_UPDATE_MAX_DAILY_CALLS: int = 500
     PRICE_UPDATE_RUN_ON_STARTUP_IF_STALE: bool = True
     PRICE_UPDATE_STALE_HOURS: int = 24
+
+    # Tariff resolver configuration
+    TARIFF_DATA_CSV_PATH: str = "data/tariff_rates.csv"
+    TARIFF_SOURCE_URL: str = "https://hts.usitc.gov/"
+    TARIFF_CONFIDENCE_THRESHOLD: float = 80.0
+    TARIFF_STALE_DAYS: int = 30
     
     model_config = SettingsConfigDict(
         env_file=".env",

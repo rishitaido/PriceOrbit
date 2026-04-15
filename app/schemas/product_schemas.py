@@ -3,7 +3,7 @@ Pydantic schemas for Product model
 Used for API validation and response serialization
 """
 from pydantic import BaseModel, Field, ConfigDict, field_validator
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from decimal import Decimal
 from datetime import datetime
 
@@ -32,6 +32,28 @@ class ProductBase(BaseModel):
     )
     hts_code: Optional[str] = Field(None, max_length=20, description="Harmonized Tariff Schedule code")
     origin_country: Optional[str] = Field(None, max_length=100, description="Primary import country")
+    rate_type: Literal["ad_valorem", "specific", "mixed", "duty_free"] = Field(
+        default="duty_free",
+        description="Tariff rate type",
+    )
+    specific_duty_value: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Specific duty value when rate_type is specific or mixed",
+    )
+    source_url: Optional[str] = Field(None, max_length=500, description="Tariff source URL")
+    verification_source: Optional[str] = Field(None, max_length=100, description="Verification source label")
+    verification_notes: Optional[str] = Field(None, description="Verification notes and rationale")
+    verified_at: Optional[datetime] = Field(None, description="Timestamp when tariff metadata was verified")
+    confidence_score: Decimal = Field(default=0.0, ge=0, le=100, description="Tariff confidence score")
+    review_status: Literal["incomplete", "needs_review", "verified", "manual_override"] = Field(
+        default="incomplete",
+        description="Tariff review status",
+    )
+    manual_tariff_override: bool = Field(
+        default=False,
+        description="When true, automation will not overwrite tariff fields unless forced.",
+    )
     kroger_product_id: Optional[str] = Field(None, max_length=100, description="Kroger API product ID")
     image_url: Optional[str] = Field(None, max_length=500, description="Product image URL")
 
@@ -58,6 +80,15 @@ class ProductUpdate(BaseModel):
     import_dependency: Optional[str] = None
     hts_code: Optional[str] = Field(None, max_length=20)
     origin_country: Optional[str] = Field(None, max_length=100)
+    rate_type: Optional[Literal["ad_valorem", "specific", "mixed", "duty_free"]] = None
+    specific_duty_value: Optional[str] = Field(None, max_length=100)
+    source_url: Optional[str] = Field(None, max_length=500)
+    verification_source: Optional[str] = Field(None, max_length=100)
+    verification_notes: Optional[str] = None
+    verified_at: Optional[datetime] = None
+    confidence_score: Optional[Decimal] = Field(None, ge=0, le=100)
+    review_status: Optional[Literal["incomplete", "needs_review", "verified", "manual_override"]] = None
+    manual_tariff_override: Optional[bool] = None
     kroger_product_id: Optional[str] = Field(None, max_length=100)
     image_url: Optional[str] = Field(None, max_length=500)
 
@@ -175,6 +206,38 @@ class BatchPriceUpdateResponse(BaseModel):
     failed: int
     results: List[PriceUpdateResponse] = Field(default_factory=list)
     errors: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class TariffResolutionResponse(BaseModel):
+    """Response schema for single-product tariff automation runs."""
+
+    product_id: int
+    product_name: str
+    matched: bool
+    updated: bool
+    skipped: bool = False
+    reason: Optional[str] = None
+    match_strategy: str
+    tariff_rate: Optional[Decimal] = None
+    rate_type: Optional[str] = None
+    hts_code: Optional[str] = None
+    origin_country: Optional[str] = None
+    import_dependency: Optional[str] = None
+    confidence_score: Decimal = Field(default=0, ge=0, le=100)
+    review_status: str
+    verification_source: Optional[str] = None
+    verified_at: Optional[datetime] = None
+
+
+class BatchTariffResolutionResponse(BaseModel):
+    """Response schema for batch tariff automation runs."""
+
+    processed: int
+    updated: int
+    matched: int
+    unmatched: int
+    skipped: int
+    results: List[TariffResolutionResponse] = Field(default_factory=list)
 
 
 class HealthScoreColor(BaseModel):
