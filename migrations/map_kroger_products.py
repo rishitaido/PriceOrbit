@@ -1,19 +1,20 @@
 import asyncio
 import csv
-import time
 import re
-from pathlib import Path
 from difflib import SequenceMatcher
-from dotenv import load_dotenv
+from pathlib import Path
 
-# Environment Setup
-base_dir = Path(__file__).resolve().parent.parent
-load_dotenv(dotenv_path=base_dir / ".env")
+from dotenv import load_dotenv
 
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.product_model import Product
 from app.services.kroger_service import KrogerService
+
+# Environment Setup
+base_dir = Path(__file__).resolve().parent.parent
+load_dotenv(dotenv_path=base_dir / ".env")
+
 
 def get_confidence(a, b):
     """Calculates how similar two strings are (0 - 100.0)"""
@@ -50,7 +51,7 @@ async def map_products():
 
     try:
         # Fetch only products missing a Kroger ID
-        products = db.query(Product).filter(Product.kroger_product_id == None).all()
+        products = db.query(Product).filter(Product.kroger_product_id.is_(None)).all()
         print(f"--- PriceOrbit: Mapping {len(products)} products ---\n")
 
         for product in products:
@@ -124,7 +125,7 @@ async def map_products():
         db.close()
         
         print("\n" + "="*30)
-        print(f"SUMMARY:")
+        print("SUMMARY:")
         print(f"Successfully Mapped: {mapped_count}")
         print(f"Manual Review Needed: {manual_needed}")
         print("="*30)
