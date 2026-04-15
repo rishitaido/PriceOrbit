@@ -55,8 +55,101 @@ function makeIcon(selected = false) {
 }
 
 // ─── POPUP CONTENT ────────────────────────────────────────────────────────────
+function formatPhone(phoneRaw) {
+  const value = String(phoneRaw || "").trim();
+  if (!value) return null;
+
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  return value;
+}
+
+function formatClockTime(value) {
+  const raw = String(value || "").trim();
+  const match = raw.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return raw;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour > 23 || minute > 59) {
+    return raw;
+  }
+
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const h12 = hour % 12 || 12;
+  return `${h12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+function parseHoursPayload(hoursRaw) {
+  if (!hoursRaw) return null;
+  if (typeof hoursRaw === "object") return hoursRaw;
+
+  const text = String(hoursRaw).trim();
+  if (!text) return null;
+  if (!text.startsWith("{")) return text;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function buildHoursSummary(hoursRaw) {
+  const payload = parseHoursPayload(hoursRaw);
+  if (!payload) return null;
+  if (typeof payload === "string") return payload;
+
+  if (payload.open24 === true) return "Open 24 hours";
+
+  const weekdayKeys = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const slots = weekdayKeys
+    .map((key) => payload[key])
+    .filter((slot) => slot && typeof slot === "object");
+
+  if (!slots.length) return null;
+
+  const summaries = slots
+    .map((slot) => {
+      if (slot.open24 === true) return "Open 24 hours";
+      if (!slot.open || !slot.close) return null;
+      return `${formatClockTime(slot.open)} - ${formatClockTime(slot.close)}`;
+    })
+    .filter(Boolean);
+
+  if (!summaries.length) return "Hours vary by day";
+  const first = summaries[0];
+  if (summaries.every((entry) => entry === first)) return `Daily: ${first}`;
+
+  const todayKey = weekdayKeys[new Date().getDay()];
+  const today = payload[todayKey];
+  if (today) {
+    if (today.open24 === true) return "Today: Open 24 hours";
+    if (today.open && today.close) {
+      return `Today: ${formatClockTime(today.open)} - ${formatClockTime(today.close)}`;
+    }
+  }
+
+  return "Hours vary by day";
+}
+
 function buildPopupHTML(store) {
   const mapsUrl = buildGoogleMapsUrl(store);
+  const phoneText = formatPhone(store.phone);
+  const hoursText = buildHoursSummary(store.hours);
   return `
     <div class="store-popup">
       <div class="store-popup-name">
@@ -66,15 +159,15 @@ function buildPopupHTML(store) {
         <i class="fa-solid fa-location-dot"></i>
         <span>${store.address}, ${store.city}, ${store.state} ${store.zip_code}</span>
       </div>
-      ${store.phone ? `
+      ${phoneText ? `
       <div class="store-popup-row">
         <i class="fa-solid fa-phone"></i>
-        <span>${store.phone}</span>
+        <span>${phoneText}</span>
       </div>` : ""}
-      ${store.hours ? `
-      <div class="store-popup-row">
+      ${hoursText ? `
+      <div class="store-popup-row store-popup-hours">
         <i class="fa-solid fa-clock"></i>
-        <span>${store.hours}</span>
+        <span>${hoursText}</span>
       </div>` : ""}
       <a class="store-popup-btn" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
         <i class="fa-solid fa-diamond-turn-right"></i> Open in Google Maps
@@ -149,8 +242,18 @@ function renderStoreList(stores) {
   listEl.innerHTML = stores
     .map((store) => {
       const isMarketplace = store.name.toLowerCase().includes("marketplace");
+      const hoursText = buildHoursSummary(store.hours);
+      const compactHoursText = hoursText
+        ? hoursText.replace(/^Daily:\s*/i, "Daily ").replace(/^Today:\s*/i, "Today ")
+        : "";
       const distLabel = store.distance_miles != null
         ? `<span class="store-card-dist">${store.distance_miles.toFixed(1)} mi</span>`
+        : "";
+      const typeBadge = isMarketplace
+        ? '<span class="store-chip chip-marketplace"><i class="fa-solid fa-building"></i> Marketplace</span>'
+        : '<span class="store-chip chip-standard"><i class="fa-solid fa-store"></i> Kroger</span>';
+      const hoursBadge = compactHoursText
+        ? `<span class="store-chip chip-hours" title="${hoursText}"><i class="fa-solid fa-clock"></i> ${compactHoursText}</span>`
         : "";
       return `
         <div class="store-card" data-id="${store.id}"
@@ -162,13 +265,17 @@ function renderStoreList(stores) {
             <div class="store-card-name">${store.name}</div>
             <div class="store-card-addr">${store.address}</div>
             <div class="store-card-city">${store.city}, ${store.state} ${store.zip_code}</div>
-            <div style="margin-top: 8px;">
+            <div class="store-card-badges">
+              ${typeBadge}
+              ${hoursBadge}
+            </div>
+            <div class="store-card-actions">
               <a
+                class="store-card-link"
                 href="${buildGoogleMapsUrl(store)}"
                 target="_blank"
                 rel="noopener noreferrer"
                 onclick="event.stopPropagation()"
-                style="display:inline-flex;align-items:center;gap:6px;color:#2563eb;text-decoration:none;font-weight:600;font-size:13px;"
               >
                 <i class="fa-solid fa-diamond-turn-right"></i> Directions
               </a>

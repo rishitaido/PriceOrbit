@@ -82,11 +82,11 @@
 .store-card {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 11px 12px;
   border-bottom: 1px solid #f3f4f6;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .store-card:hover {
@@ -96,19 +96,20 @@
 .store-card.active {
   background: #f0fdf8;
   border-left: 3px solid #5dd1ab;
+  border-bottom-color: #d1fae5;
 }
 
 .store-card-icon {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   background: linear-gradient(135deg, #f0fdf8 0%, #dcfce7 100%);
   border: 1px solid #bbf7d0;
-  border-radius: 10px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 18px;
+  font-size: 15px;
   color: #16a34a;
 }
 
@@ -124,10 +125,10 @@
 }
 
 .store-card-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: #111;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -135,23 +136,85 @@
 
 .store-card-addr {
   font-size: 12px;
-  color: #6b7280;
+  color: #4b5563;
   line-height: 1.4;
 }
 
 .store-card-city {
-  font-size: 12px;
+  font-size: 11px;
   color: #9ca3af;
-  margin-top: 2px;
+  margin-top: 1px;
+}
+
+.store-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.store-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.store-chip i {
+  font-size: 10px;
+}
+
+.chip-standard {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.chip-marketplace {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.chip-hours {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.store-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.store-card-link:hover {
+  text-decoration: underline;
+}
+
+.store-card-actions {
+  margin-top: 6px;
 }
 
 .store-card-dist {
   font-size: 11px;
-  font-weight: 600;
-  color: #5dd1ab;
-  background: #f0fdf8;
-  border: 1px solid #bbf7d0;
-  padding: 2px 7px;
+  font-weight: 800;
+  color: #047857;
+  background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #6ee7b7;
+  padding: 2px 8px;
   border-radius: 20px;
   white-space: nowrap;
   align-self: flex-start;
@@ -208,7 +271,7 @@
 .store-popup-row {
   font-size: 12px;
   color: #6b7280;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   display: flex;
   align-items: flex-start;
   gap: 6px;
@@ -223,6 +286,13 @@
 
 .store-popup-row span {
   color: #333;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.store-popup-row.store-popup-hours span {
+  color: #111;
+  font-weight: 600;
 }
 
 .store-popup-btn {

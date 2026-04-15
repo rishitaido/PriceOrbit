@@ -38,6 +38,14 @@ class MetaRow:
 
 # High-signal substring aliases for common Kroger renamed products.
 ALIAS_SUBSTRINGS: Dict[str, str] = {
+    "yellow onion 3 lb bag": "Onions",
+    "fresh yellow banana peppers": "Bell Peppers",
+    "fresh navel oranges bag": "Oranges",
+    "dreamberry greenhouse grown strawberries": "Strawberries",
+    "baby spinach": "Spinach",
+    "bone in pork loin chops": "Pork Chops",
+    "farm raised atlantic salmon": "Salmon Fillet",
+    "fully cooked frozen grilled chicken breast strips": "Frozen Chicken Nuggets",
     "banana peppers": "Bell Peppers",
     "gala apples": "Apples",
     "navel oranges": "Oranges",
@@ -253,4 +261,3 @@ def sync_metadata(csv_path: str = "data/tariff_rates.csv", dry_run: bool = False
 
 if __name__ == "__main__":
     sync_metadata()
-
