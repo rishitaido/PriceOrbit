@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
@@ -26,15 +27,37 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="app/templates")
 logger = logging.getLogger(__name__)
 
+
+def _is_production_runtime() -> bool:
+    deploy_env = (settings.DEPLOY_ENV or "").strip().lower()
+    return (
+        deploy_env in {"prod", "production"}
+        or bool(os.getenv("RENDER"))
+        or bool(os.getenv("RENDER_SERVICE_ID"))
+    )
+
+
+def _api_docs_enabled() -> bool:
+    if _is_production_runtime():
+        return False
+    return bool(settings.ENABLE_API_DOCS and settings.DEBUG)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- startup ---
-    if not settings.DEBUG and settings.SECRET_KEY == "change-me-in-production":
-        raise RuntimeError("SECRET_KEY must be set to a secure value in production.")
+    if _is_production_runtime():
+        if settings.DEBUG:
+            raise RuntimeError("DEBUG must be False in production.")
+        if settings.SECRET_KEY == "change-me-in-production" or len(settings.SECRET_KEY) < 32:
+            raise RuntimeError("SECRET_KEY must be set to a secure value (min 32 chars) in production.")
+        if settings.ENABLE_API_DOCS:
+            raise RuntimeError("ENABLE_API_DOCS must be False in production.")
+        if settings.ADMIN_PIN == "3030":
+            logger.warning("Using default ADMIN_PIN in production runtime.")
     logger.info("%s v%s", settings.APP_NAME, settings.VERSION)
     logger.info("Database: %s", settings.MYSQL_DATABASE)
     logger.info("Debug Mode: %s", settings.DEBUG)
-    logger.info("API Docs: http://localhost:%s/docs", settings.PORT)
     await price_update_scheduler.start()
     yield  # app runs here
 
@@ -48,8 +71,9 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
     description="Grocery price prediction system monitoring tariffs, supply chain, and retail prices",
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
+    docs_url="/docs" if _api_docs_enabled() else None,
+    redoc_url="/redoc" if _api_docs_enabled() else None,
+    openapi_url="/openapi.json" if _api_docs_enabled() else None,
     lifespan=lifespan,
 )
 
@@ -104,6 +128,19 @@ app.add_middleware(
     allow_methods = ["*"],
     allow_headers = ["*"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(self)"
+    if _is_production_runtime():
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+        response.headers["Content-Security-Policy"] = "frame-ancestors 'none'; base-uri 'self'"
+    return response
 
 #Static files 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     PORT: int = 8080
     SECRET_KEY: str = "change-me-in-production"
+    ENABLE_API_DOCS: bool = False
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     DEPLOY_ENV: str = "development"

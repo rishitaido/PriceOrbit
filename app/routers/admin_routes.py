@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.rate_limit import enforce_rate_limit
 from app.db.session import get_db
 from app.models.user_model import User
 from app.routers.auth_routes import get_current_user
@@ -13,6 +14,11 @@ from app.services.admin_service import AdminService
 from app.tasks.price_updater import price_update_scheduler
 
 router = APIRouter()
+
+
+def limit_admin_requests(request: Request) -> None:
+    # Admin endpoints should be protected from rapid-fire abuse.
+    enforce_rate_limit(request, bucket="admin_api", limit=60, window_seconds=60)
 
 
 def verify_admin_pin(x_admin_pin: str = Header(..., description="Admin PIN required for access")) -> None:
@@ -25,6 +31,7 @@ def verify_admin_pin(x_admin_pin: str = Header(..., description="Admin PIN requi
 async def trigger_price_update(
     limit: int = Query(50, ge=1, le=50),
     delay_seconds: float = Query(2.0, ge=0, le=30),
+    ___: None = Depends(limit_admin_requests),
     _: User = Depends(get_current_user),
     __: None = Depends(verify_admin_pin),
 ):
@@ -37,6 +44,7 @@ async def trigger_price_update(
 
 @router.get("/price-update-status")
 def get_price_update_status(
+    ___: None = Depends(limit_admin_requests),
     _: User = Depends(get_current_user),
     __: None = Depends(verify_admin_pin),
 ):
@@ -47,6 +55,7 @@ def get_price_update_status(
 @router.get("/dashboard-metrics")
 def get_dashboard_metrics(
     db: Session = Depends(get_db),
+    ___: None = Depends(limit_admin_requests),
     _: User = Depends(get_current_user),
     __: None = Depends(verify_admin_pin),
 ):
