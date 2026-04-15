@@ -4,8 +4,10 @@ Application config using Pydantic Settings
 Loading our env variables 
 '''
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
+
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings): 
     '''
@@ -27,7 +29,7 @@ class Settings(BaseSettings):
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
     MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str
+    MYSQL_PASSWORD: str = ""
     MYSQL_DATABASE: str = "priceorbit_db"
 
       # Kroger API Configuration
@@ -71,6 +73,14 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True
     )
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        """Accept Render-style `postgres://` URLs by normalizing to SQLAlchemy dialect name."""
+        if isinstance(value, str) and value.startswith("postgres://"):
+            return value.replace("postgres://", "postgresql://", 1)
+        return value
 
 
 # Create global settings instance

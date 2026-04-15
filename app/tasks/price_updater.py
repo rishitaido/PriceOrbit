@@ -129,17 +129,21 @@ class PriceUpdateScheduler:
         job_logger.info("Price update scheduler started (daily %02d:00 UTC).", scheduled_hour)
 
         if settings.PRICE_UPDATE_RUN_ON_STARTUP_IF_STALE:
-            if self._has_stale_products():
-                job_logger.info("Startup catch-up triggered: stale or unchecked products found.")
-                self._current_task = asyncio.create_task(
-                    self._run_update_job(
-                        source="startup_catchup",
-                        limit=max(1, min(settings.PRICE_UPDATE_BATCH_SIZE, 50)),
-                        delay_seconds=max(0.0, settings.PRICE_UPDATE_DELAY_SECONDS),
+            try:
+                if self._has_stale_products():
+                    job_logger.info("Startup catch-up triggered: stale or unchecked products found.")
+                    self._current_task = asyncio.create_task(
+                        self._run_update_job(
+                            source="startup_catchup",
+                            limit=max(1, min(settings.PRICE_UPDATE_BATCH_SIZE, 50)),
+                            delay_seconds=max(0.0, settings.PRICE_UPDATE_DELAY_SECONDS),
+                        )
                     )
-                )
-            else:
-                job_logger.info("Startup catch-up skipped: products are fresh.")
+                else:
+                    job_logger.info("Startup catch-up skipped: products are fresh.")
+            except Exception as exc:
+                # Do not fail web service boot if startup catch-up pre-check can't reach DB yet.
+                job_logger.warning("Startup catch-up check skipped due to DB error: %s", exc)
         return True
 
     @staticmethod
