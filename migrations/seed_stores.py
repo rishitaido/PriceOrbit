@@ -1,10 +1,10 @@
 """
 Seed script for Kroger store locations.
 
-Fetches 10-20 Kroger stores near Atlanta, GA via the Kroger API
-and inserts them into the database.
+Fetches stores across multiple ZIP codes and upserts into database.
 - Inserts new stores
-- Skips duplicates by kroger_location_id
+- Updates existing stores by kroger_location_id
+- Skips incomplete records
 """
 
 from __future__ import annotations
@@ -34,10 +34,21 @@ from app.services.kroger_service import KrogerService
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Test area: Atlanta, GA
-SEED_ZIP_CODE = "30303"
-SEED_LIMIT = 20
-SEED_RADIUS = 15  # miles
+# Metro-Atlanta focused seed ZIP codes to expand store coverage.
+SEED_ZIP_CODES = [
+    "30303",  # Downtown Atlanta
+    "30305",  # Buckhead
+    "30318",  # Midtown/Westside
+    "30009",  # Alpharetta
+    "30022",  # Johns Creek
+    "30068",  # East Cobb
+    "30060",  # Marietta
+    "30144",  # Kennesaw
+    "30076",  # Roswell
+    "30097",  # Duluth
+]
+SEED_LIMIT = 50
+SEED_RADIUS = 30  # miles
 
 
 async def fetch_stores() -> list[dict]:
@@ -45,15 +56,46 @@ async def fetch_stores() -> list[dict]:
         client_id=settings.KROGER_CLIENT_ID,
         client_secret=settings.KROGER_CLIENT_SECRET,
     ) as kroger:
-        return await kroger.search_stores(
-            SEED_ZIP_CODE,
-            limit=SEED_LIMIT,
-            radius_miles=SEED_RADIUS,
-        )
+        all_results: list[dict] = []
+        seen_keys: set[str] = set()
+
+        for zip_code in SEED_ZIP_CODES:
+            logger.info("Fetching stores near ZIP %s...", zip_code)
+            try:
+                rows = await kroger.search_stores(
+                    zip_code,
+                    limit=SEED_LIMIT,
+                    radius_miles=SEED_RADIUS,
+                )
+            except Exception as exc:
+                logger.warning("Store search failed for ZIP %s: %s", zip_code, exc)
+                continue
+
+            for row in rows:
+                location_id = (row.get("kroger_location_id") or "").strip()
+                fallback_key = "|".join(
+                    [
+                        (row.get("name") or "").strip().lower(),
+                        (row.get("address") or "").strip().lower(),
+                        (row.get("zip_code") or "").strip(),
+                    ]
+                )
+                dedupe_key = location_id or fallback_key
+                if not dedupe_key or dedupe_key in seen_keys:
+                    continue
+                seen_keys.add(dedupe_key)
+                all_results.append(row)
+
+        return all_results
 
 
 def seed_stores() -> None:
-    logger.info("Fetching Kroger stores near Atlanta, GA (ZIP %s)...", SEED_ZIP_CODE)
+    logger.info(
+        "Fetching Kroger stores across %d ZIP codes (limit=%d, radius=%d mi)...",
+        len(SEED_ZIP_CODES),
+        SEED_LIMIT,
+        SEED_RADIUS,
+    )
     stores_data = asyncio.run(fetch_stores())
 
     if not stores_data:

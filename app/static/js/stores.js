@@ -56,6 +56,7 @@ function makeIcon(selected = false) {
 
 // ─── POPUP CONTENT ────────────────────────────────────────────────────────────
 function buildPopupHTML(store) {
+  const mapsUrl = buildGoogleMapsUrl(store);
   return `
     <div class="store-popup">
       <div class="store-popup-name">
@@ -75,11 +76,18 @@ function buildPopupHTML(store) {
         <i class="fa-solid fa-clock"></i>
         <span>${store.hours}</span>
       </div>` : ""}
-      <a class="store-popup-btn" href="/products?store=${store.id}">
-        <i class="fa-solid fa-tags"></i> Compare Prices
+      <a class="store-popup-btn" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
+        <i class="fa-solid fa-diamond-turn-right"></i> Open in Google Maps
       </a>
     </div>
   `;
+}
+
+function buildGoogleMapsUrl(store) {
+  const address = [store.address, store.city, store.state, store.zip_code]
+    .filter(Boolean)
+    .join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
 // ─── MARKER MANAGEMENT ────────────────────────────────────────────────────────
@@ -154,6 +162,17 @@ function renderStoreList(stores) {
             <div class="store-card-name">${store.name}</div>
             <div class="store-card-addr">${store.address}</div>
             <div class="store-card-city">${store.city}, ${store.state} ${store.zip_code}</div>
+            <div style="margin-top: 8px;">
+              <a
+                href="${buildGoogleMapsUrl(store)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                onclick="event.stopPropagation()"
+                style="display:inline-flex;align-items:center;gap:6px;color:#2563eb;text-decoration:none;font-weight:600;font-size:13px;"
+              >
+                <i class="fa-solid fa-diamond-turn-right"></i> Directions
+              </a>
+            </div>
           </div>
           ${distLabel}
         </div>`;
@@ -257,7 +276,7 @@ document.getElementById("btn-use-location").addEventListener("click", () => {
       // Fetch nearby stores from API
       try {
         const res = await fetch(
-          `${NEARBY_API}?lat=${latitude}&lng=${longitude}&radius=10&limit=20`
+          `${NEARBY_API}?lat=${latitude}&lng=${longitude}&radius=25&limit=50`
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const nearby = await res.json();
@@ -271,7 +290,7 @@ document.getElementById("btn-use-location").addEventListener("click", () => {
         updateStats(nearby, nearby.length);
 
         document.getElementById("store-count-label").textContent =
-          `${nearby.length} store${nearby.length !== 1 ? "s" : ""} within 10 miles`;
+          `${nearby.length} store${nearby.length !== 1 ? "s" : ""} within 25 miles`;
       } catch (err) {
         console.warn("Nearby API error — filtering mock data:", err.message);
 
@@ -395,7 +414,7 @@ async function searchByZip(zip) {
     // Fetch nearby stores
     try {
       const res = await fetch(
-        `${NEARBY_API}?lat=${lat}&lng=${lng}&radius=10&limit=20`
+        `${NEARBY_API}?lat=${lat}&lng=${lng}&radius=25&limit=50`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const nearby = await res.json();
