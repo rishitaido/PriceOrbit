@@ -4,6 +4,11 @@ const API_BASE = "/api/products";
 let priceChart = null;
 let activeProductId = null;
 
+function getAuthHeaders() {
+  const token = localStorage.getItem("access_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // ── TRACKING (localStorage) ──────────────────────────────────────────────────
 function normalizeTrackedIds(ids) {
   if (!Array.isArray(ids)) return [];
@@ -126,6 +131,12 @@ function bindActions() {
     updateButton.addEventListener("click", async () => {
       if (!activeProductId) return;
 
+      if (!localStorage.getItem("access_token")) {
+        const statusEl = document.getElementById("update-price-status");
+        if (statusEl) statusEl.textContent = "Please log in to update price.";
+        return;
+      }
+
       const statusEl = document.getElementById("update-price-status");
       updateButton.disabled = true;
       if (statusEl) statusEl.textContent = "Updating...";
@@ -133,9 +144,13 @@ function bindActions() {
       try {
         const response = await fetch(`${API_BASE}/${activeProductId}/update-price`, {
           method: "POST",
+          headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error("Session expired. Please log in again.");
+          }
           const errorBody = await response.json().catch(() => ({}));
           const message = errorBody?.detail?.message || errorBody?.detail || "Price update failed";
           throw new Error(message);

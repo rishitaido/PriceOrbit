@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import os
+import sys
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -22,6 +24,13 @@ from typing import Dict, List
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+
+# Ensure project root is importable when running as a script (e.g., Render startup command)
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+# Some setups use DEBUG=release, which is not parseable as bool for Settings.
+if (os.getenv("DEBUG") or "").strip().lower() == "release":
+    os.environ["DEBUG"] = "False"
 
 from app.db.session import SessionLocal
 from app.models.product_model import Product
