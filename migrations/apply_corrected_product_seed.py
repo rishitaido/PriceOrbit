@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import csv
 import os
+import re
 import sys
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
@@ -103,12 +104,54 @@ def _normalize_text(raw: str) -> str:
     return str(raw or "").strip()
 
 
-def _find_by_name(db: Session, name: str) -> Product | None:
-    return (
+def _normalize_name_key(raw: str) -> str:
+    value = str(raw or "").lower()
+    value = re.sub(r"[^a-z0-9 ]", " ", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
+
+
+def _token_set(raw: str) -> set[str]:
+    key = _normalize_name_key(raw)
+    return {token for token in key.split(" ") if token}
+
+
+def _find_matches_by_name(db: Session, name: str) -> List[Product]:
+    """
+    Find products for a CSV row name.
+
+    Matching strategy:
+    1) case-insensitive exact match
+    2) normalized exact match (ignores punctuation/casing)
+    3) token containment (CSV name tokens are a subset of product name tokens)
+    """
+    exact = (
         db.query(Product)
         .filter(func.lower(Product.name) == name.lower())
-        .first()
+        .all()
     )
+    if exact:
+        return exact
+
+    target_key = _normalize_name_key(name)
+    all_products = db.query(Product).all()
+
+    normalized_exact = [
+        product for product in all_products if _normalize_name_key(product.name) == target_key
+    ]
+    if normalized_exact:
+        return normalized_exact
+
+    target_tokens = _token_set(name)
+    if not target_tokens:
+        return []
+
+    token_matches: List[Product] = []
+    for product in all_products:
+        product_tokens = _token_set(product.name)
+        if target_tokens.issubset(product_tokens):
+            token_matches.append(product)
+    return token_matches
 
 
 def _apply_row_to_product(product: Product, row: Dict[str, str]) -> bool:
@@ -162,8 +205,8 @@ def apply_corrected_seed(
             if not name:
                 raise ValueError("Encountered empty product name in CSV.")
 
-            product = _find_by_name(db, name)
-            if product is None:
+            products = _find_matches_by_name(db, name)
+            if not products:
                 if not create_missing:
                     summary.missing += 1
                     continue
@@ -175,15 +218,16 @@ def apply_corrected_seed(
                 db.add(product)
                 db.flush()
                 summary.created += 1
+                products = [product]
 
-            changed = _apply_row_to_product(product, row)
-            if changed:
-                summary.updated += 1
-            else:
-                summary.unchanged += 1
-
-            product.calculate_health_score()
-            summary.recalculated += 1
+            for product in products:
+                changed = _apply_row_to_product(product, row)
+                if changed:
+                    summary.updated += 1
+                else:
+                    summary.unchanged += 1
+                product.calculate_health_score()
+                summary.recalculated += 1
 
         if dry_run:
             db.rollback()
