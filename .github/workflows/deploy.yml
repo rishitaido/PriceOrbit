@@ -52,13 +52,3 @@ jobs:
             echo "::warning::USITC tariff sync failed with exit code $status; continuing deploy."
           fi
 
-      - name: Trigger Render deploy
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
-        run: |
-          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
-
-      - name: Deployment reminder
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL == '' }}
-        run: |
-          echo "RENDER_DEPLOY_HOOK_URL is not configured."
-          echo "Set it in repository secrets to enable automatic deploy trigger."
