@@ -237,14 +237,10 @@ function displayProductInfo(product, stats = null) {
   }
   document.getElementById("origin-country").textContent = product.origin_country || "Not specified";
   document.getElementById("hts-code").textContent = product.hts_code || "Not specified";
-  updateReviewStatusBadge(product.review_status || "incomplete");
   const confidenceEl = document.getElementById("confidence-score");
   if (confidenceEl) {
     confidenceEl.textContent = `${Number(product.confidence_score || 0).toFixed(2)}%`;
   }
-  document.getElementById("verified-at").textContent = product.verified_at
-    ? formatDateTime(product.verified_at)
-    : "Not verified";
   const sourceParts = [product.verification_source || "Not specified"];
   if (product.source_url) sourceParts.push(`(${product.source_url})`);
   document.getElementById("verification-source").textContent = sourceParts.join(" ");
@@ -304,18 +300,6 @@ function formatDisplayLabel(value) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
-}
-
-function updateReviewStatusBadge(statusRaw) {
-  const badge = document.getElementById("review-status");
-  if (!badge) return;
-
-  const normalized = String(statusRaw || "incomplete")
-    .toLowerCase()
-    .replace(/[^a-z_]/g, "");
-
-  badge.textContent = formatDisplayLabel(normalized || "incomplete");
-  badge.className = `info-value badge-pill review-${normalized || "incomplete"}`;
 }
 
 function updateHealthScoreBreakdown(product, stats = null) {
@@ -508,18 +492,6 @@ function formatDate(dateString) {
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
-}
-
-function formatDateTime(dateString) {
-  const parsed = new Date(dateString);
-  if (Number.isNaN(parsed.getTime())) return "Unknown";
-  return parsed.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
   });
 }
 
