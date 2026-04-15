@@ -49,7 +49,7 @@ def upgrade() -> None:
             "manual_tariff_override",
             sa.Boolean(),
             nullable=False,
-            server_default=sa.text("0"),
+            server_default=sa.text("false"),
         ),
     )
 
