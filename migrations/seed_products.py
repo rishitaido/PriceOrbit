@@ -7,8 +7,17 @@ Loads products from data/products_seed.csv into the database.
 """
 
 import csv
+import os
+import sys
 from pathlib import Path
 from sqlalchemy.orm import Session
+
+# Ensure project root is importable when running as a script (e.g., Render startup command)
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+# Some local/deploy setups may set DEBUG=release, which is not parseable as bool.
+if (os.getenv("DEBUG") or "").strip().lower() == "release":
+    os.environ["DEBUG"] = "False"
 
 from app.db.session import SessionLocal
 from app.models.product_model import Product
