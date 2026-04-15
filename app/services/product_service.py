@@ -11,7 +11,7 @@ import asyncio
 import json
 import logging
 import re
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -35,6 +35,7 @@ from app.schemas.product_schemas import ProductCreate, ProductUpdate
 from app.services.kroger_service import KrogerAPIError, KrogerRateLimitError, KrogerService
 from app.services.price_alert_service import PriceAlertService
 from app.services.price_history_service import PriceHistoryService
+from app.services.tariff_resolver_service import TariffResolverService
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ class ProductService:
 
     def __init__(self, db: Session) -> None:
         self.db = db
+        self.tariff_resolver = TariffResolverService()
         self._override_by_name: Dict[str, str] = {}
         self._override_by_product_id: Dict[int, str] = {}
         self._aliases_by_name: Dict[str, List[str]] = {}
@@ -612,6 +614,201 @@ class ProductService:
             "product_id": product.id,
             "product_name": product.name,
             "prices": prices,
+        }
+
+    # ------------------------------------------------------------------
+    # Tariff automation operations
+    # ------------------------------------------------------------------
+
+    def _resolve_tariff_for_entity(self, product: Product, *, force: bool = False) -> Dict[str, Any]:
+        if product.manual_tariff_override and not force:
+            return {
+                "product_id": product.id,
+                "product_name": product.name,
+                "matched": bool(product.hts_code),
+                "updated": False,
+                "skipped": True,
+                "reason": "manual_tariff_override_enabled",
+                "match_strategy": "manual_override",
+                "tariff_rate": product.tariff_rate,
+                "rate_type": product.rate_type,
+                "hts_code": product.hts_code,
+                "origin_country": product.origin_country,
+                "import_dependency": product.import_dependency,
+                "confidence_score": product.confidence_score,
+                "review_status": "manual_override",
+                "verification_source": product.verification_source,
+                "verified_at": product.verified_at,
+            }
+
+        resolution = self.tariff_resolver.resolve(
+            product_name=product.name,
+            hts_code=product.hts_code,
+            origin_country=product.origin_country,
+        )
+
+        now = datetime.now(timezone.utc)
+        changed = False
+        tariff_inputs_changed = False
+
+        if resolution.matched:
+            if resolution.hts_code and product.hts_code != resolution.hts_code:
+                product.hts_code = resolution.hts_code
+                changed = True
+            if resolution.origin_country and product.origin_country != resolution.origin_country:
+                product.origin_country = resolution.origin_country
+                changed = True
+            if (
+                resolution.tariff_rate is not None
+                and product.tariff_rate != resolution.tariff_rate
+            ):
+                product.tariff_rate = resolution.tariff_rate
+                changed = True
+                tariff_inputs_changed = True
+            if (
+                resolution.import_dependency
+                and product.import_dependency != resolution.import_dependency
+            ):
+                product.import_dependency = resolution.import_dependency
+                changed = True
+                tariff_inputs_changed = True
+            if resolution.rate_type and product.rate_type != resolution.rate_type:
+                product.rate_type = resolution.rate_type
+                changed = True
+            if product.specific_duty_value != resolution.specific_duty_value:
+                product.specific_duty_value = resolution.specific_duty_value
+                changed = True
+
+        if product.verification_source != resolution.verification_source:
+            product.verification_source = resolution.verification_source
+            changed = True
+        if product.source_url != resolution.source_url:
+            product.source_url = resolution.source_url
+            changed = True
+        if product.verification_notes != resolution.verification_notes:
+            product.verification_notes = resolution.verification_notes
+            changed = True
+        if product.confidence_score != resolution.confidence_score:
+            product.confidence_score = resolution.confidence_score
+            changed = True
+        if product.review_status != resolution.review_status:
+            product.review_status = resolution.review_status
+            changed = True
+        product.verified_at = now
+        changed = True
+
+        if tariff_inputs_changed:
+            product.calculate_health_score()
+
+        product.updated_at = now
+        if changed:
+            self._commit_refresh_or_raise(product)
+        else:
+            try:
+                self.db.refresh(product)
+            except SQLAlchemyError:
+                pass
+
+        return {
+            "product_id": product.id,
+            "product_name": product.name,
+            "matched": resolution.matched,
+            "updated": changed,
+            "skipped": False,
+            "reason": None,
+            "match_strategy": resolution.match_strategy,
+            "tariff_rate": product.tariff_rate,
+            "rate_type": product.rate_type,
+            "hts_code": product.hts_code,
+            "origin_country": product.origin_country,
+            "import_dependency": product.import_dependency,
+            "confidence_score": product.confidence_score,
+            "review_status": product.review_status,
+            "verification_source": product.verification_source,
+            "verified_at": product.verified_at,
+        }
+
+    def resolve_tariff_for_product(self, product_id: int, force: bool = False) -> Dict[str, Any]:
+        product = self.get_product_by_id(product_id)
+        return self._resolve_tariff_for_entity(product, force=force)
+
+    def resolve_tariffs(
+        self,
+        *,
+        limit: int = 100,
+        stale_only: bool = True,
+        force: bool = False,
+    ) -> Dict[str, Any]:
+        if limit < 1 or limit > 500:
+            raise ValidationError("Batch limit must be between 1 and 500.", details={"limit": limit})
+
+        query = self.db.query(Product).order_by(Product.id.asc())
+        if stale_only:
+            stale_days = max(1, int(settings.TARIFF_STALE_DAYS))
+            cutoff = datetime.now(timezone.utc) - timedelta(days=stale_days)
+            query = query.filter((Product.verified_at.is_(None)) | (Product.verified_at < cutoff))
+
+        products = query.limit(limit).all()
+        if not products:
+            return {
+                "processed": 0,
+                "updated": 0,
+                "matched": 0,
+                "unmatched": 0,
+                "skipped": 0,
+                "results": [],
+            }
+
+        results: List[Dict[str, Any]] = []
+        updated = 0
+        matched = 0
+        unmatched = 0
+        skipped = 0
+
+        for product in products:
+            try:
+                payload = self._resolve_tariff_for_entity(product, force=force)
+            except ValidationError:
+                raise
+            except Exception as exc:
+                self.db.rollback()
+                payload = {
+                    "product_id": product.id,
+                    "product_name": product.name,
+                    "matched": False,
+                    "updated": False,
+                    "skipped": True,
+                    "reason": str(exc),
+                    "match_strategy": "error",
+                    "tariff_rate": product.tariff_rate,
+                    "rate_type": product.rate_type,
+                    "hts_code": product.hts_code,
+                    "origin_country": product.origin_country,
+                    "import_dependency": product.import_dependency,
+                    "confidence_score": product.confidence_score,
+                    "review_status": product.review_status,
+                    "verification_source": product.verification_source,
+                    "verified_at": product.verified_at,
+                }
+                logger.exception("Tariff resolution failed for product id=%s: %s", product.id, exc)
+
+            results.append(payload)
+            if payload["updated"]:
+                updated += 1
+            if payload["skipped"]:
+                skipped += 1
+            elif payload["matched"]:
+                matched += 1
+            else:
+                unmatched += 1
+
+        return {
+            "processed": len(products),
+            "updated": updated,
+            "matched": matched,
+            "unmatched": unmatched,
+            "skipped": skipped,
+            "results": results,
         }
 
     # ------------------------------------------------------------------

@@ -229,9 +229,19 @@ function displayProductInfo(product, stats = null) {
   importBadge.textContent = importDep;
   importBadge.className = `info-value badge-pill import-${importDep.toLowerCase()}`;
 
-  document.getElementById("tariff-rate").textContent = `${product.tariff_rate || 0}%`;
+  const tariffRate = Number(product.tariff_rate || 0);
+  document.getElementById("tariff-rate").textContent = `${tariffRate.toFixed(2)}%`;
+  document.getElementById("rate-type").textContent = formatDisplayLabel(product.rate_type || "duty_free");
   document.getElementById("origin-country").textContent = product.origin_country || "Not specified";
   document.getElementById("hts-code").textContent = product.hts_code || "Not specified";
+  updateReviewStatusBadge(product.review_status || "incomplete");
+  document.getElementById("confidence-score").textContent = `${Number(product.confidence_score || 0).toFixed(2)}%`;
+  document.getElementById("verified-at").textContent = product.verified_at
+    ? formatDateTime(product.verified_at)
+    : "Not verified";
+  const sourceParts = [product.verification_source || "Not specified"];
+  if (product.source_url) sourceParts.push(`(${product.source_url})`);
+  document.getElementById("verification-source").textContent = sourceParts.join(" ");
   document.getElementById("retailer").textContent = product.retailer || "Kroger";
 
   updateHealthScoreBreakdown(product, stats);
@@ -280,6 +290,26 @@ function displayPriceChange(elementId, change) {
   const arrow = value >= 0 ? "↑" : "↓";
   const className = value >= 0 ? "up" : "down";
   element.innerHTML = `<span class="price-badge ${className}">${arrow} ${Math.abs(value).toFixed(1)}%</span>`;
+}
+
+function formatDisplayLabel(value) {
+  return String(value || "")
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function updateReviewStatusBadge(statusRaw) {
+  const badge = document.getElementById("review-status");
+  if (!badge) return;
+
+  const normalized = String(statusRaw || "incomplete")
+    .toLowerCase()
+    .replace(/[^a-z_]/g, "");
+
+  badge.textContent = formatDisplayLabel(normalized || "incomplete");
+  badge.className = `info-value badge-pill review-${normalized || "incomplete"}`;
 }
 
 function updateHealthScoreBreakdown(product, stats = null) {
@@ -472,6 +502,18 @@ function formatDate(dateString) {
     month: "short",
     day: "numeric",
     year: "numeric",
+  });
+}
+
+function formatDateTime(dateString) {
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) return "Unknown";
+  return parsed.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 

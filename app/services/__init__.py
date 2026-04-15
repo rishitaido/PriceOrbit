@@ -6,4 +6,5 @@ __all__ = [
     "price_alert_service",
     "product_service",
     "store_service",
+    "tariff_resolver_service",
 ]

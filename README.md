@@ -93,6 +93,19 @@ If you still want generated historical points for demo charts:
 python scripts/backfill_price_history.py --days 30
 ```
 
+## USITC Tariff Refresh
+To refresh `data/tariff_rates.csv` from USITC by HTS code:
+
+```bash
+python scripts/update_tariffs_from_usitc.py --dry-run
+python scripts/update_tariffs_from_usitc.py
+```
+
+Optional flags:
+- `--resolve-products` run in-app tariff resolution after CSV update
+- `--resolve-stale-only` only update stale/unverified product records
+- `--resolve-force` override manual tariff lock
+
 ## Documentation
 - Deployment: `docs/DEPLOYMENT.md`
 - Database schema: `docs/DATABASE_SCHEMA.md`

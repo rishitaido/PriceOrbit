@@ -10,10 +10,12 @@ from app.db.session import get_db
 from app.models.user_model import User
 from app.routers.auth_routes import get_current_user
 from app.schemas.product_schemas import (
+    BatchTariffResolutionResponse,
     BatchPriceUpdateResponse,
     PriceHistoryResponse,
     PricePointCreate,
     ProductStorePriceListResponse,
+    TariffResolutionResponse,
     PriceUpdateResponse,
     ProductCreate,
     ProductListResponse,
@@ -92,6 +94,18 @@ async def update_all_prices(
     return BatchPriceUpdateResponse(**summary)
 
 
+@router.post("/resolve-tariffs", response_model=BatchTariffResolutionResponse)
+def resolve_tariffs(
+    limit: int = Query(100, ge=1, le=500),
+    stale_only: bool = Query(True, description="Only resolve products with stale or missing verification."),
+    force: bool = Query(False, description="When true, override manual tariff lock."),
+    _: User = Depends(get_current_user),
+    service: ProductService = Depends(get_product_service),
+):
+    payload = service.resolve_tariffs(limit=limit, stale_only=stale_only, force=force)
+    return BatchTariffResolutionResponse(**payload)
+
+
 @router.get("/{product_id}", response_model=ProductResponse)
 def get_product(
     product_id: int,
@@ -152,6 +166,17 @@ async def get_product_prices_by_store(
         refresh_from_api=refresh,
     )
     return ProductStorePriceListResponse(**payload)
+
+
+@router.post("/{product_id}/resolve-tariff", response_model=TariffResolutionResponse)
+def resolve_product_tariff(
+    product_id: int,
+    force: bool = Query(False, description="When true, override manual tariff lock."),
+    _: User = Depends(get_current_user),
+    service: ProductService = Depends(get_product_service),
+):
+    payload = service.resolve_tariff_for_product(product_id=product_id, force=force)
+    return TariffResolutionResponse(**payload)
 
 
 @router.post("/{product_id}/add-price-point", response_model=ProductResponse)

@@ -42,6 +42,14 @@ Set these in `Settings -> Secrets and variables -> Actions`:
   before deploy trigger.
 - Keep migrations backward-compatible when possible.
 
+### Free Plan (No Shell Access)
+If Render shell is unavailable, use GitHub Actions:
+- `.github/workflows/deploy.yml` now runs USITC tariff sync + product tariff resolution during deploy (non-blocking).
+- `.github/workflows/tariff-sync.yml` can be triggered manually from the Actions tab (`workflow_dispatch`) and also runs weekly.
+
+Important:
+- `PROD_DATABASE_URL` must be the Render database **External URL** so GitHub Actions can connect.
+
 ## 5. Health Check Verification
 After deployment:
 1. Open:

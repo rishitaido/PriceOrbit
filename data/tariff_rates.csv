@@ -1,51 +1,51 @@
-product_name,hts_code,tariff_rate,origin_country,import_dependency
-All-Purpose Flour,1101.00.00,0.00,United States,Low
-Almond Milk,2202.99.91,0.00,Canada,Medium
-Apples,0808.10.00,0.00,United States,Low
-Avocados,0804.40.00,0.00,Mexico,High
-Bacon,0210.12.00,0.00,United States,Low
-Bananas,0803.90.00,0.00,Guatemala,High
-Beef Steak,0201.30.02,4.00,United States,Low
-Bell Peppers,0709.60.40,0.00,Mexico,High
-Blueberries,0810.40.00,0.00,Peru,Medium
-Broccoli,0704.10.20,2.50,Mexico,Medium
-Brown Rice,1006.20.40,1.80,India,Medium
-Butter,0405.10.20,0.00,United States,Low
-Canned Black Beans,2005.51.40,0.00,United States,Low
-Canned Chickpeas,2005.99.85,11.20,Turkey,Medium
-Carrots,0706.10.05,0.00,United States,Low
-Cheddar Cheese,0406.90.95,0.00,United States,Low
-Chicken Breast,0207.14.00,0.00,United States,Low
-Eggs,0407.21.00,0.00,United States,Low
-Frozen Berries,0811.90.80,14.50,Chile,Medium
-Frozen Chicken Nuggets,1602.32.00,0.00,United States,Low
-Frozen Pizza,1905.90.90,0.00,United States,Low
-Frozen Vegetables,0710.90.91,14.00,Mexico,Medium
-Garlic,0703.20.00,25.00,China,High
-Greek Yogurt,0403.20.90,0.00,United States,Low
-Ground Beef,0201.30.04,0.00,United States,Low
-Ground Turkey,0207.26.00,0.00,United States,Low
-Heavy Cream,0401.50.50,0.00,United States,Low
-Ice Cream,2105.00.40,0.00,United States,Low
-Lamb Chops,0204.22.20,0.70,Australia,High
-Lettuce,0705.19.20,0.00,United States,Low
-Mozzarella Cheese,0406.10.48,0.00,United States,Low
-Olive Oil,1509.30.20,3.40,Spain,High
-Onions,0703.10.40,0.00,United States,Low
-Oranges,0805.10.00,0.00,United States,Low
-Parmesan Cheese,0406.90.97,15.00,Italy,High
-Pasta,1902.19.20,6.40,United States,Low
-Peanut Butter,2008.11.02,0.00,United States,Low
-Pork Chops,0203.19.40,0.00,United States,Low
-Potatoes,0701.90.10,0.00,United States,Low
-Salmon Fillet,0304.41.00,0.00,Chile,High
-Shrimp,0306.17.00,0.00,India,High
-Sour Cream,0403.90.72,0.00,United States,Low
-Spinach,0709.70.00,20.00,United States,Low
-Strawberries,0810.10.20,0.00,Mexico,Medium
-Sugar,1701.99.50,0.00,Mexico,Medium
-Tilapia,0304.61.00,25.00,China,High
-Tomatoes,0702.00.20,0.00,Mexico,High
-Vegetable Oil,1507.90.40,19.10,Canada,Medium
-White Rice,1006.30.90,1.40,India,Medium
-Whole Milk,0401.20.40,0.00,United States,Low
+product_name,hts_code,tariff_rate,origin_country,import_dependency,usitc_general,usitc_special,usitc_rate_type,usitc_parse_status,usitc_updated_at
+All-Purpose Flour,1101.00.00,0.00,United States,Low,0.7¢/kg,"Free (A+,AU,BH,CL,CO,D,E, IL,JO,KR,MA,OM,P,PA,PE,S, SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Almond Milk,2202.99.91,0.00,Canada,Medium,0.2¢/liter,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Apples,0808.10.00,0.00,United States,Low,Free,,duty_free,ok_free,2026-04-15T19:26:39.078676+00:00
+Avocados,0804.40.00,0.00,Mexico,High,11.2¢/kg,"Free (A+,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Bacon,0210.12.00,0.00,United States,Low,1.4¢/kg,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Bananas,0803.90.00,0.00,Guatemala,High,Free,,duty_free,ok_free,2026-04-15T19:26:39.078676+00:00
+Beef Steak,0201.30.02,4.00,United States,Low,4%,"Free (A+,AU,BH,CL,CO,D,E*, IL,JO,KR,MA,OM, P,PA, PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Bell Peppers,0709.60.40,0.00,Mexico,High,4.7¢/kg,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Blueberries,0810.40.00,0.00,Peru,Medium,Free,,duty_free,ok_free,2026-04-15T19:26:39.078676+00:00
+Broccoli,0704.10.20,2.50,Mexico,Medium,2.5%,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Brown Rice,1006.20.40,1.80,India,Medium,2.1¢/kg,"Free (A+,AU,BH,CL,CO,D,E, IL,JO,KR,MA,OM,P,PA,PE,S, SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Butter,0405.10.20,0.00,United States,Low,$1.541/kg,"Free (BH,CL,CO,JO,KR,MA,OM,P,PA,PE,SG) See 9822.04.10 (AU) See 9823.03.01-9823.03.12 (S+) See 9908.04.01 (IL)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Canned Black Beans,2005.51.40,0.00,United States,Low,2.1¢/kg on entire contents of container,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Canned Chickpeas,2005.99.85,11.20,Turkey,Medium,0.8¢/kg on entire contents of container,"Free (A*,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Carrots,0706.10.05,14.90,United States,Low,14.9%,"Free (A+,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Cheddar Cheese,0406.90.95,10.00,United States,Low,10%,"Free (A+,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Chicken Breast,0207.14.00,0.00,United States,Low,17.6¢/kg,"Free (A+,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Eggs,0407.21.00,0.00,United States,Low,2.8¢/doz.,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Frozen Berries,0811.90.80,14.50,Chile,Medium,14.5%,"Free (A+,AU,BH,CL,CO,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Frozen Chicken Nuggets,1602.32.00,6.40,United States,Low,6.4%,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Frozen Pizza,1905.90.90,4.50,United States,Low,4.5%,"Free (A*,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Frozen Vegetables,0710.90.91,14.00,Mexico,Medium,14%,"Free (A,AU,BH, CL,CO,D,E,IL, JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Garlic,0703.20.00,25.00,China,High,0.43¢/kg,"Free (A*,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Greek Yogurt,0403.20.90,17.00,United States,Low,17%,"Free (A+,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Ground Beef,0201.30.04,10.00,United States,Low,10%,"Free (A+,AU,BH,CL,CO,D,E*,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Ground Turkey,0207.26.00,0.00,United States,Low,17.6¢/kg,"Free (A+,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Heavy Cream,0401.50.50,0.00,United States,Low,12.3¢/kg,"Free (A+,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Ice Cream,2105.00.40,17.00,United States,Low,50.2¢/kg + 17%,"Free (BH,CL,JO,KR,MA,OM,P,PA,PE,SG) See 9822.04.25 (AU) See 9823.08.01-9823.08.38 (S+) See 9918.04.60-9918.04.80 (CO)",mixed,ok_mixed,2026-04-15T19:26:39.078676+00:00
+Lamb Chops,0204.22.20,0.70,Australia,High,0.7¢/kg,"Free (A+,AU,BH,CL,CO,D,E, IL,JO,KR,MA,OM,P,PA,PE,S, SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Lettuce,0705.19.20,0.00,United States,Low,0.4¢/kg,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Mozzarella Cheese,0406.10.48,0.00,United States,Low,$1.803/kg,"Free (BH,CL,JO,KR,MA,OM,P,PE,SG) See 9822.04.40 (AU) See 9823.04.01-9823.04.54 (S+) See 9908.04.05 (IL) See 9918.04.50, 9918.04.55 (CO) See 9919.04.50, 9919.04.54, 9919.04.64 (PA)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Olive Oil,1509.30.20,3.40,Spain,High,5¢/kg on contents and container,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Onions,0703.10.40,0.00,United States,Low,3.1¢/kg,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Oranges,0805.10.00,0.00,United States,Low,1.9¢/kg,"Free (AU,BH, CL,CO,D,E,IL, JO,KR,MA, OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Parmesan Cheese,0406.90.97,15.00,Italy,High,$1.509/kg,"Free (BH,CL,JO,KR,MA,OM,P,PE,SG) See 9822.04.35 (AU) See 9823.04.01-9823.04.54 (S+) See 9908.04.05 (IL) See 9918.04.50, 9918.04.51 (CO) See 9919.04.40, 9919.04.41-9919.04.42 (PA)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Pasta,1902.19.20,0.00,United States,Low,Free,,duty_free,ok_free,2026-04-15T19:26:39.078676+00:00
+Peanut Butter,2008.11.02,0.00,United States,Low,Free,,duty_free,ok_free,2026-04-15T19:26:39.078676+00:00
+Pork Chops,0203.19.40,0.00,United States,Low,Free,,duty_free,ok_free,2026-04-15T19:26:39.078676+00:00
+Potatoes,0701.90.10,0.00,United States,Low,0.5¢/kg,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Salmon Fillet,0304.41.00,0.00,Chile,High,Free,,duty_free,ok_free,2026-04-15T19:26:39.078676+00:00
+Shrimp,0306.17.00,0.00,India,High,Free,,duty_free,ok_free,2026-04-15T19:26:39.078676+00:00
+Sour Cream,0403.90.72,0.00,United States,Low,12.3¢/kg,"Free (A+,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Spinach,0709.70.00,20.00,United States,Low,20%,"Free (A+,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Strawberries,0810.10.20,0.00,Mexico,Medium,0.2¢/kg,"Free (A,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Sugar,1701.99.50,0.00,Mexico,Medium,35.74¢/kg,"Free (BH,CL,JO,KR,OM,SG) See 9822.05.20 (P+) See 9822.06.10 (PE) See 9822.08.01 (CO) See 9822.09.17 (PA) See 9823.09.01-9823.09.09 (S+) See 9822.03.01(MA)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Tilapia,0304.61.00,0.00,China,High,Free,,duty_free,ok_free,2026-04-15T19:26:39.078676+00:00
+Tomatoes,0702.00.20,0.00,Mexico,High,3.9¢/kg,"Free (AU,BH, CL,CO,D,E,IL, JO,KR,MA, OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Vegetable Oil,1507.90.40,19.10,Canada,Medium,19.1%,"Free (A+,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",ad_valorem,ok_ad_valorem,2026-04-15T19:26:39.078676+00:00
+White Rice,1006.30.90,1.40,India,Medium,1.4¢/kg,"Free (A+,AU,BH,CL,CO,D,E, IL,JO,KR,MA,OM,P,PA, PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00
+Whole Milk,0401.20.40,0.00,United States,Low,1.5¢/liter,"Free (AU,BH,CL,CO,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",specific,non_ad_valorem,2026-04-15T19:26:39.078676+00:00

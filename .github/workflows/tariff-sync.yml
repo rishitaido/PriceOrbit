@@ -1,12 +1,12 @@
-name: PriceOrbit Deploy
+name: PriceOrbit Tariff Sync
 
 on:
-  push:
-    branches: ["main"]
   workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 1"
 
 jobs:
-  migrate-and-deploy:
+  sync-tariffs:
     runs-on: ubuntu-latest
 
     env:
@@ -15,7 +15,6 @@ jobs:
       KROGER_CLIENT_ID: ${{ secrets.KROGER_CLIENT_ID }}
       KROGER_CLIENT_SECRET: ${{ secrets.KROGER_CLIENT_SECRET }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
 
     steps:
       - name: Checkout
@@ -40,26 +39,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run migrations on production database
+      - name: Ensure latest schema
         run: |
           alembic upgrade head
 
-      - name: Sync tariffs from USITC and resolve product tariffs (non-blocking)
+      - name: Sync tariffs from USITC and resolve product records
         run: |
-          set +e
-          python scripts/update_tariffs_from_usitc.py --resolve-products --resolve-limit 500 --show-changes 15
-          status=$?
-          if [ $status -ne 0 ]; then
-            echo "::warning::USITC tariff sync failed with exit code $status; continuing deploy."
-          fi
-
-      - name: Trigger Render deploy
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
-        run: |
-          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
-
-      - name: Deployment reminder
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL == '' }}
-        run: |
-          echo "RENDER_DEPLOY_HOOK_URL is not configured."
-          echo "Set it in repository secrets to enable automatic deploy trigger."
+          python scripts/update_tariffs_from_usitc.py --resolve-products --resolve-limit 500 --show-changes 25
