@@ -241,6 +241,9 @@ function displayProductInfo(product, stats = null) {
   if (confidenceEl) {
     confidenceEl.textContent = `${Number(product.confidence_score || 0).toFixed(2)}%`;
   }
+  const sourceParts = [product.verification_source || "Not specified"];
+  if (product.source_url) sourceParts.push(`(${product.source_url})`);
+  document.getElementById("verification-source").textContent = sourceParts.join(" ");
   document.getElementById("retailer").textContent = product.retailer || "Kroger";
 
   updateHealthScoreBreakdown(product, stats);
