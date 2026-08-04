@@ -1,7 +1,7 @@
 # PriceOrbit
 
 PriceOrbit is a FastAPI application for tracking grocery prices, mapping Kroger products and stores, and surfacing price differences across locations.
-
+Demo Video: https://docs.google.com/videos/d/1qc0fPLfK-A3rToCwxiFw9XijVedWWv2oz_JgRHKhFrs/edit?usp=drive_link 
 ## Features
 - Product catalog with tariff metadata and health score calculation
 - Store locator with map-based nearby search
